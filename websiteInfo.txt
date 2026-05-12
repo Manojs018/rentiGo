@@ -1,0 +1,360 @@
+================================================================================
+  RENTIGO.IN — WEBSITE INFORMATION DOCUMENT
+  Source: https://rentigo.in/ | Analyzed: May 2026
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+1. BRAND NAME
+────────────────────────────────────────────────────────────────────────────────
+Full Brand Name : RentiGo (stylized as "RentiGo" in logo, domain: rentigo.in)
+Site Name       : Rentigo – Bike & Car Rentals in India
+OG Site Name    : Rentigo – Bike & Car Rentals in India
+
+────────────────────────────────────────────────────────────────────────────────
+2. TAGLINE
+────────────────────────────────────────────────────────────────────────────────
+Primary Tagline : "Taxi, Bike & Vehicle Rentals in India – Easy Search"
+  (used in page <title> and OG title)
+
+Hero Sub-tagline: "Fast, reliable, and affordable rental services available
+                   24/7. Your ride is just one click away!"
+
+Pricing Page    : "Transparent, affordable, and flexible rental plans"
+
+────────────────────────────────────────────────────────────────────────────────
+3. ONE-LINER
+────────────────────────────────────────────────────────────────────────────────
+Meta Description:
+  "Rentigo.in makes it simple to book taxis, bikes, and vehicles for rent
+   across India. Search by city, compare options, and connect instantly.
+   Perfect for daily rides, outstation travel, and airport pickups."
+
+OG Description (short form):
+  "Rentigo.in makes it simple to book taxis, bikes, and vehicles for rent
+   across India. Search by city, compare options, and connect instantly."
+
+Footer About:
+  "Rentigo is your trusted rental partner in India offering bikes, scooters,
+   cars & taxis at affordable prices. Whether it's for tourism or daily
+   travel, we provide reliable and hassle-free rental services."
+
+────────────────────────────────────────────────────────────────────────────────
+4. BRAND VOICE
+────────────────────────────────────────────────────────────────────────────────
+Tone            : Friendly, direct, action-oriented, emoji-forward
+Style Signals   :
+  - Heavy use of emojis in section headings (🚗 🚀 ⚡ 🌍 ❓ 🎬 📢)
+  - Short punchy sentences ("Your ride is just one click away!")
+  - Trust signals woven into copy ("trusted", "verified", "professional")
+  - FAQ section uses tick/icon prefixes (✅ 🪪 ⛽ 🚗 ⏱️ 🛬 🛣️ 👨‍✈️ ⏳ 📅)
+  - Warm, approachable ("Designed with ❤️ in Dwarka, Gujarat")
+  - B2B secondary voice: "Grow your earnings with our trusted platform"
+  - Urgency language: "Book Now", "Start Earning Today", "just 2 minutes"
+  - Inclusive ("Perfect for daily rides, outstation travel, airport pickups")
+
+────────────────────────────────────────────────────────────────────────────────
+5. COLORS
+────────────────────────────────────────────────────────────────────────────────
+Note: Exact hex values are defined in CSS not visible in extracted markup.
+Based on branding context and logo image (orange/yellow taxi icon on dark BG):
+
+Primary         : Likely warm orange / amber (taxi/vehicle industry standard,
+                  consistent with logo thumbnail on OG image)
+Accent          : White (used for text on dark backgrounds)
+Background      : Dark navy or charcoal (inferred from OG image preview)
+CTA Buttons     : Orange or accent color ("Book Now" buttons throughout)
+Text            : Dark gray / black on light sections
+
+OG Logo Image URL:
+  https://rentigo.in/wp-content/uploads/2025/09/Untitled-1-copy-e1757925997229.png
+  (512×115 px, PNG)
+
+────────────────────────────────────────────────────────────────────────────────
+6. NAVIGATION MENU
+────────────────────────────────────────────────────────────────────────────────
+Logo Link       : RentiGo → https://rentigo.in/
+
+Main Nav Items  :
+  1. Home           → https://rentigo.in/
+  2. Our Rentals    → https://rentigo.in/rentals-page
+  3. Rental Cities  → https://rentigo.in/rentigo-in-cities
+  4. Our Pricing    → https://rentigo.in/pricing
+  5. About Us       → https://rentigo.in/about
+  6. Contact Us     → https://rentigo.in/contact
+
+CTA Button (top-right):
+  "Book Now"        → https://rentigo.in/booking
+
+────────────────────────────────────────────────────────────────────────────────
+7. HERO SECTION
+────────────────────────────────────────────────────────────────────────────────
+Heading         : "Book Cars, Bikes & Taxis with Ease"
+Sub-heading     : "Fast, reliable, and affordable rental services available
+                   24/7. Your ride is just one click away!"
+
+CTA Buttons     :
+  Primary   → 🚖 Book Now    (https://rentigo.in/booking)
+  Secondary → View Services  (https://rentigo.in/rentals-page)
+
+Inline Quick Booking Form (embedded in hero):
+  Fields:
+    - Your Name         (text input)
+    - Contact Number    (text input)
+    - Select Vehicle    (dropdown: Car / Bike / Activa / Taxi)
+    - Pickup Date & Time (datetime picker)
+  Submit: "Confirm Booking" button
+
+────────────────────────────────────────────────────────────────────────────────
+8. SHADERS / BACKGROUNDS
+────────────────────────────────────────────────────────────────────────────────
+Note: Background visual assets are CSS/JS rendered; not directly extractable
+from HTML text. Based on page structure:
+
+Hero Background : Likely a dark gradient or vehicle/city photo overlay
+                  (consistent with OG image preview — dark scene with car)
+City Cards BG   : All city feature cards share the same image:
+                  https://rentigo.in/wp-content/uploads/2025/09/taxi-sign-car-night-scaled.jpg
+                  (appears to be a taxi sign at night — atmospheric dark blue)
+Vehicle Images  :
+  - SUV: https://rentigo.in/wp-content/uploads/2025/09/suv.jpg
+  - Bike (Splendor): https://rentigo.in/wp-content/uploads/2025/09/splender.png
+  - Activa: https://rentigo.in/wp-content/uploads/2025/09/activa.png
+  - Taxi icon: https://rentigo.in/wp-content/uploads/2025/09/taxi_2401174.png
+  - Sedan: https://rentigo.in/wp-content/uploads/2025/09/sedan-300x169.webp
+  - White SUV: https://rentigo.in/wp-content/uploads/2025/09/suv-300x163.jpg
+
+Ad Modal        : Site shows an interstitial ad ("Watch the ad to continue /
+                  Close Ad") before rendering — monetization layer.
+
+────────────────────────────────────────────────────────────────────────────────
+9. SCROLL AREAS / PAGE SECTIONS (Top to Bottom)
+────────────────────────────────────────────────────────────────────────────────
+Section Order on Homepage:
+
+  1.  Ad Modal / Interstitial
+  2.  Navigation Bar
+  3.  Hero — "Book Cars, Bikes & Taxis with Ease" + Quick Booking Form
+  4.  Our Fleet — 4 vehicle cards (SUV, Bike, Activa, Taxi)
+  5.  Find Your Perfect Ride — Search Widget (type + city + vehicle dropdowns)
+  6.  Our Services in Other Cities — Featured city cards (Ahmedabad, Surat,
+                                     Vadodara, Rajkot)
+  7.  Why Choose Us — 4 trust pillars
+  8.  How It Works — 3-step process
+  9.  Available Vehicles — Listing cards with pricing + Book Now modal
+  10. FAQ — 10 accordion questions
+  11. Join Rentigo and Start Earning Today — Partner CTA banner
+  12. Bike Rentals in India — Link grid (200+ cities)
+  13. Car Rentals in India — Link grid (200+ cities)
+  14. Taxi Rentals Across India — Link grid (200+ cities)
+  15. How to Book Your Ride (YouTube embed) + WhatsApp CTA
+  16. List Your Business Banner — B2B partner section
+  17. Footer
+
+────────────────────────────────────────────────────────────────────────────────
+10. FEATURES SECTION
+────────────────────────────────────────────────────────────────────────────────
+Section Title   : "🚀 Why Choose Us"
+Sub-heading     : "We provide reliable, safe, and affordable rental services
+                   for everyone"
+
+Feature Pillars (4):
+  1. 24/7 Service
+     "Book anytime, day or night. We are always available."
+
+  2. Affordable Pricing
+     "Transparent pricing with no hidden charges."
+
+  3. Safe & Secure
+     "Insured rides with well-maintained vehicles."
+
+  4. Professional Drivers
+     "Experienced drivers who prioritize your safety."
+
+────────────────────────────────────────────────────────────────────────────────
+11. PRICING SECTION
+────────────────────────────────────────────────────────────────────────────────
+Page URL        : https://rentigo.in/pricing
+Page Heading    : "Our Pricing"
+Sub-heading     : "Transparent, affordable, and flexible rental plans"
+
+── Plans ──────────────────────────────────────────────────────────────────────
+
+  DAILY PLAN
+  "Best for short city rides or quick errands."
+  From ₹250/day
+  ✔ Cars, Bikes, Activas, Taxis
+  ✔ Flexible pickup & drop
+  ✔ Fuel not included
+  CTA: Book Now
+
+  WEEKLY PLAN
+  "Perfect for tourists and business trips."
+  From ₹1500/week
+  ✔ Discounted rates
+  ✔ Unlimited kilometers option
+  ✔ 24/7 support
+  CTA: Book Now
+
+  MONTHLY PLAN
+  "Ideal for long-term rental needs."
+  From ₹4500/month
+  ✔ Best value pricing
+  ✔ Free service & maintenance
+  ✔ Option to swap vehicles
+  CTA: Book Now
+
+── Vehicle Pricing Table ───────────────────────────────────────────────────────
+
+  Vehicle Type        | Daily      | Weekly     | Monthly
+  --------------------|------------|------------|------------
+  Cars                | ₹1,200     | ₹7,000     | ₹20,000
+  Bikes               | ₹300       | ₹1,500     | ₹4,500
+  Activas             | ₹280       | ₹1,400     | ₹4,000
+  Taxis (with driver) | ₹15/km     | Custom     | Custom
+
+Pricing Page End CTA:
+  Heading : "Ready to Ride?"
+  Sub-text: "Pick your plan and start your journey with Rentigo today"
+  Button  : 🚖 Book Now → https://rentigo.in/booking
+
+────────────────────────────────────────────────────────────────────────────────
+12. CALLS TO ACTION
+────────────────────────────────────────────────────────────────────────────────
+Primary CTAs:
+  • 🚖 Book Now           → https://rentigo.in/booking  (appears 10+ times)
+  • View Services         → https://rentigo.in/rentals-page
+
+Secondary CTAs:
+  • Chat on WhatsApp      → https://wa.me/919687008865
+  • 📲 Book Your Ride Now → https://wa.me/919687008865?text=Hi, I want to book a ride with Rentigo
+
+B2B / Partner CTAs:
+  • 📩 List Now           → https://rentigo.in/list-your-vehicle-on-rentigo/
+  • 🚀 Publish Your Listing → https://rentigo.in/list-your-vehicle
+  • 💰 Earnings Simulator → https://rentigo.in/earnings-simulator/
+
+City-Specific CTAs (examples):
+  • Book in Ahmedabad     → https://rentigo.in/bike-rental-in-ahmedabad/
+  • Book in Surat         → https://rentigo.in/bike-rental-in-surat/
+  • Book in Vadodara      → https://rentigo.in/bike-rental-in-vadodara
+  • Book in Rajkot        → https://rentigo.in/bike-rental-in-rajkot
+
+────────────────────────────────────────────────────────────────────────────────
+13. CARDS
+────────────────────────────────────────────────────────────────────────────────
+── Fleet Cards (Our Fleet Section) ────────────────────────────────────────────
+
+  Card 1 — SUV Car
+    Image: suv.jpg
+    Desc : "Comfortable rides for families & city travel."
+    CTA  : Book Now
+
+  Card 2 — Bike
+    Image: splender.png
+    Desc : "Quick & budget-friendly option for solo rides."
+    CTA  : Book Now
+
+  Card 3 — Activa Scooter
+    Image: activa.png
+    Desc : "Easy rides for short distances & daily use."
+    CTA  : Book Now
+
+  Card 4 — Taxi
+    Image: taxi_2401174.png
+    Desc : "Reliable & professional drivers for any trip."
+    CTA  : Book Now
+
+── City Feature Cards (Services in Other Cities) ───────────────────────────────
+
+  Card 1 — Ahmedabad
+    Desc : "Now available for Car, Bike & Taxi rentals."
+    CTA  : Book in Ahmedabad
+
+  Card 2 — Surat
+    Desc : "Reliable rentals with affordable pricing."
+    CTA  : Book in Surat
+
+  Card 3 — Vadodara
+    Desc : "Serving all major locations of the city."
+    CTA  : Book in Vadodara
+
+  Card 4 — Rajkot
+    Desc : "Safe and comfortable rides for all needs."
+    CTA  : Book in Rajkot
+
+── Available Vehicle Listing Cards ─────────────────────────────────────────────
+
+  Card 1 — Sedan
+    Price        : ₹2,500 / Day
+    Fuel         : Petrol
+    Transmission : Manual
+    Status       : Available
+    CTA          : Book Now (opens inline modal form)
+
+  Card 2 — White SUV
+    Price        : ₹2,800 / Day
+    Fuel         : Petrol
+    Transmission : Manual
+    Status       : Available
+    CTA          : Book Now
+
+  Card 3 — Activa 6G
+    Price        : ₹450 / Day
+    Fuel         : Petrol
+    Transmission : Manual
+    Status       : Available
+    CTA          : Book Now
+
+── How It Works Step Cards ─────────────────────────────────────────────────────
+
+  Step 1 — Choose Vehicle
+    "Select from cars, bikes, activas, or taxis."
+
+  Step 2 — Fill Details
+    "Enter your pickup time, date, and location."
+
+  Step 3 — Get Your Ride
+    "Enjoy your ride with complete comfort & safety."
+
+────────────────────────────────────────────────────────────────────────────────
+14. FOOTER
+────────────────────────────────────────────────────────────────────────────────
+About Column:
+  Heading : "About Rentigo"
+  Text    : "Rentigo is your trusted rental partner in India offering bikes,
+             scooters, cars & taxis at affordable prices. Whether it's for
+             tourism or daily travel, we provide reliable and hassle-free
+             rental services."
+  CTA     : Chat on WhatsApp → https://wa.me/919687008865?text=Hi, I want to book a rental
+
+Quick Links Column:
+  🏠 Home              → https://rentigo.in
+  ℹ️ About Us          → https://rentigo.in/about
+  🚘 Rentals           → https://rentigo.in/rentals-page
+  📞 Contact           → https://rentigo.in/contact
+  🔒 Privacy Policy    → https://rentigo.in/privacy-policy
+  📜 Terms & Conditions → https://rentigo.in/terms-and-conditions
+
+Partner Program Column:
+  Heading : "Partner Proggram" [sic — typo on site]
+  📢 List Your Business    → https://rentigo.in/list-your-vehicle
+  💰 Earnings Simulator    → https://rentigo.in/earnings-simulator/
+  📞 Contact for Business  → https://rentigo.in/contact
+
+Contact Column:
+  Phone : +91 96870 08865  (tel:+919687008865)
+  Email : team@rentigo.in
+  Address: Dwarka, Gujarat, India
+
+Social Links:
+  Facebook  : https://www.facebook.com/rentigo
+  Instagram : https://www.instagram.com/rentigo
+  Twitter/X : https://twitter.com/rentigo
+  WhatsApp  : https://wa.me/919687008865
+
+Copyright Line:
+  "© 2026 Rentigo. All Rights Reserved. | Designed with ❤️ in Dwarka, Gujarat"
+
+================================================================================
+END OF DOCUMENT
+================================================================================

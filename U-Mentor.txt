@@ -1,0 +1,146 @@
+Vehicle Rental Management System
+Detailed guide and project requirements for the Vehicle Rental Management System analysis.
+Context:
+To develop a centralized, web-based platform that enables users to rent two-wheelers and four-wheelers on a daily, weekly, or monthly basis, while allowing rental agencies to efficiently manage vehicle availability, pricing, and bookings.
+
+Problem Statement
+Traditional vehicle rental operations rely heavily on manual processes, phone calls, or basic spreadsheets, leading to:
+
+• Vehicle availability conflicts
+• Lack of real-time booking updates
+• Inconsistent pricing management
+• Poor customer experience
+• Inefficient fleet utilization
+Primary Objectives
+• Digitize the vehicle rental booking process
+• Provide real-time vehicle availability tracking
+• Enable flexible rental durations (daily/weekly/monthly)
+• Improve operational efficiency for rental agencies
+• Improve customer booking experience
+Secondary Objectives
+• Provide analytics on vehicle usage and revenue
+• Enable scalable expansion across cities
+Scope of Work
+In-Scope
+• Web-based platform (responsive design)
+• Two-wheeler and four-wheeler rentals
+• Booking and availability management
+• Pricing management
+Out of Scope
+• Native mobile application
+• GPS tracking of vehicles
+• Insurance claim management
+
+Functional Requirements
+User (Customer) Features
+• User registration & login
+• Browse available vehicles
+• Search & filter by:
+o Vehicle type (2W / 4W)
+o Price range
+o Rental duration
+o Fuel type
+• View vehicle details (photos, specs, pricing)
+• Select rental period (date & time)
+• Book vehicle
+• View booking history & status
+Rental Agency / Owner Features
+• Dashboard to manage fleet
+• Add/edit vehicle details:
+o Vehicle number
+o Model & brand
+o Rental pricing (daily/weekly/monthly)
+o Availability status
+• Approve or reject bookings
+• Block vehicles for maintenance
+• Track active rentals
+Admin Features
+• Manage users and rental agencies
+• Approve vehicle listings
+• Monitor bookings and conflicts
+• Manage pricing categories
+• View system analytics
+Non-Functional Requirements
+• Performance:
+- Page load time < 3 seconds;
+- supports concurrent bookings
+• Security:
+- Secure authentication and role-based access control
+• Usability:
+- Simple
+- intuitive
+- mobile-first UI
+• Scalability:
+- Supports multi-location expansion and fleet growth
+
+
+
+Technology Stack (Suggested)
+Frontend
+• HTML5, CSS3, JavaScript
+• React.js / Next.js
+• Tailwind CSS
+Backend
+• Node.js with Express.js
+Database
+• MongoDB 
+APIs
+• REST APIs for bookings, availability, pricing
+Deployment
+• AWS / Vercel / Netlify
+User Flow (High-Level)
+• User visits website
+• Registers / logs in
+• Searches for available vehicles
+• Applies filters and views vehicle details
+• Selects rental duration
+• Sends booking request
+• Owner/admin approves booking
+• User receives confirmation
+Data Requirements
+Core Entities
+• Users
+• Vehicles
+• Bookings
+• Pricing Plans
+• Locations
+Sample Vehicle Data
+• Vehicle Name
+• Type (2-W / 4-W)
+• Model Year
+• Fuel Type
+• Transmission
+• Rental Price
+• Availability Status
+Key Performance Indicators (KPIs)
+• Number of registered users
+• Booking conversion rate
+• Vehicle utilization rate
+• Booking conflict rate
+• Average rental duration
+• Monthly active users
+Assumptions & Constraints
+Assumptions
+• Vehicle data will be accurate and regularly updated
+• Users will follow rental policies
+• Admin approvals will be timely
+Constraints
+• Fixed development timeline
+• Limited budget for Phase 1
+• No real-time vehicle tracking
+Deliverables and Submission
+• Functional web application
+• Admin dashboard
+• PRD & technical documentation
+• Deployment-ready build
+Expected Impact
+• Improved vehicle rental efficiency
+• Reduced booking conflicts
+• Better customer experience
+• Increased revenue for rental agencies
+Future Enhancements
+• Online payments & refunds
+• Mobile application (Android / iOS)
+• GPS vehicle tracking
+• Dynamic pricing
+• Insurance & damage management
