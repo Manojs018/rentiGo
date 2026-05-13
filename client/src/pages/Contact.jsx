@@ -45,7 +45,7 @@ export default function Contact() {
                 </div>
                 <h3 className="text-white font-bold mb-1">Call Us</h3>
                 <p className="text-slate-400 text-sm mb-3">Available 24/7 for urgent help.</p>
-                <a href="tel:+91" className="text-orange-400 font-bold hover:underline">+91 8073530625</a>
+                <a href="tel:+919687008865" className="text-orange-400 font-bold hover:underline">+91 96870 08865</a>
               </motion.div>
 
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="glass p-6 rounded-3xl border-white/5">
