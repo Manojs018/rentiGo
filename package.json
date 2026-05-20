@@ -1,0 +1,14 @@
+{
+  "name": "verent-root",
+  "version": "1.0.0",
+  "description": "Root package to run both client and server concurrently",
+  "scripts": {
+    "install-all": "npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
