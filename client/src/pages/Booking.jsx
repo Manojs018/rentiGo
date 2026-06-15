@@ -69,7 +69,7 @@ export default function Booking() {
 
   const fetchSelectedVehicle = async (id) => {
     try {
-      const { data } = await vehicleAPI.getById(id);
+      const { data } = await vehicleAPI.getOne(id);
       setSelectedVehicle(data.data);
     } catch (error) {
       console.error(error);
