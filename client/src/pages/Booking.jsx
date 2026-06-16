@@ -42,15 +42,14 @@ export default function Booking() {
   });
 
   useEffect(() => {
-    // If state passed from hero or rentals
-    if (location.state) {
-      setForm(prev => ({ ...prev, ...location.state }));
-      if (location.state.vehicleId) {
-        // Fetch specific vehicle if ID is passed
-        fetchSelectedVehicle(location.state.vehicleId);
-      }
-    }
     fetchVehicles();
+    // If vehicleId passed from Rentals/VehiclesSection, pre-select and skip to step 2
+    if (location.state?.vehicleId) {
+      setForm(prev => ({ ...prev, ...location.state }));
+      fetchSelectedVehicle(location.state.vehicleId, true);
+    } else if (location.state) {
+      setForm(prev => ({ ...prev, ...location.state }));
+    }
   }, [location.state]);
 
   const fetchVehicles = async () => {
@@ -67,12 +66,14 @@ export default function Booking() {
     }
   };
 
-  const fetchSelectedVehicle = async (id) => {
+  const fetchSelectedVehicle = async (id, autoAdvance = false) => {
     try {
       const { data } = await vehicleAPI.getOne(id);
       setSelectedVehicle(data.data);
+      if (autoAdvance) setStep(2);
     } catch (error) {
-      console.error(error);
+      console.error('Could not pre-select vehicle:', error);
+      // Still advance to step 1 so user can pick manually
     }
   };
 
