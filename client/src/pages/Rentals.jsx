@@ -263,6 +263,7 @@ export default function Rentals() {
 
                         <Link
                           to={v.available ? `/booking` : '#'}
+                          state={v.available ? { vehicleId: v._id } : undefined}
                           className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                             v.available
                               ? 'btn-primary'
