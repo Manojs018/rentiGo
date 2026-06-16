@@ -80,4 +80,5 @@ BookingSchema.pre('save', function () {
   }
 });
 
+
 module.exports = mongoose.model('Booking', BookingSchema);
