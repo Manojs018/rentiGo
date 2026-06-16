@@ -96,6 +96,7 @@ export default function VehiclesSection() {
 
                 <Link
                   to={v.available ? '/booking' : '#'}
+                  state={v.available ? { vehicleId: v.id } : undefined}
                   className={`w-full text-center py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 block ${
                     v.available
                       ? 'bg-orange-500/15 hover:bg-orange-500 border border-orange-500/30 hover:border-transparent text-orange-400 hover:text-white'
