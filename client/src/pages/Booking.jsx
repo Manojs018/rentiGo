@@ -132,9 +132,8 @@ export default function Booking() {
                 { n: 4, label: 'Finished' },
               ].map(s => (
                 <div key={s.n} className="flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
-                    step >= s.n ? 'bg-orange-500 border-orange-500 text-white shadow-glow-sm' : 'bg-dark-900 border-white/10 text-slate-500'
-                  }`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${step >= s.n ? 'bg-orange-500 border-orange-500 text-white shadow-glow-sm' : 'bg-dark-900 border-white/10 text-slate-500'
+                    }`}>
                     {step > s.n ? <CheckCircle size={20} /> : s.n}
                   </div>
                   <span className={`text-[10px] uppercase font-bold tracking-wider mt-2 ${step >= s.n ? 'text-orange-400' : 'text-slate-600'}`}>
@@ -163,9 +162,8 @@ export default function Booking() {
                         <button
                           key={c}
                           onClick={() => setForm({ ...form, city: c })}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                            form.city === c ? 'bg-orange-500 text-white' : 'glass text-slate-500 border-white/5'
-                          }`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${form.city === c ? 'bg-orange-500 text-white' : 'glass text-slate-500 border-white/5'
+                            }`}
                         >
                           {c}
                         </button>
@@ -249,9 +247,8 @@ export default function Booking() {
                             <button
                               key={p}
                               onClick={() => setForm({ ...form, rentalPlan: p })}
-                              className={`py-3 rounded-xl text-xs font-bold uppercase transition-all ${
-                                form.rentalPlan === p ? 'bg-orange-500 text-white shadow-glow-sm' : 'glass border-white/5 text-slate-400'
-                              }`}
+                              className={`py-3 rounded-xl text-xs font-bold uppercase transition-all ${form.rentalPlan === p ? 'bg-orange-500 text-white shadow-glow-sm' : 'glass border-white/5 text-slate-400'
+                                }`}
                             >
                               {p}
                             </button>
@@ -408,7 +405,7 @@ export default function Booking() {
                         'Enjoy your RentiGo ride!'
                       ].map((text, i) => (
                         <li key={i} className="flex gap-3 text-sm text-slate-300">
-                          <span className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-orange-500 shrink-0">{i+1}</span>
+                          <span className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-orange-500 shrink-0">{i + 1}</span>
                           {text}
                         </li>
                       ))}
