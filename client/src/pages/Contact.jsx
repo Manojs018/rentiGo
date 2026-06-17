@@ -21,7 +21,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="mn-h-screen bg-dark-900">
+    <div className="min-h-screen bg-dark-900">
       <Navbar />
 
       <main className="pt-32 pb-20">
