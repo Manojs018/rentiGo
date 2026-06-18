@@ -15,6 +15,15 @@ exports.createBooking = async (req, res) => {
     // Calculate pricing
     const pickup = new Date(pickupDate);
     const returnD = new Date(returnDate);
+
+    if (isNaN(pickup.getTime()) || isNaN(returnD.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid pickup or return date' });
+    }
+
+    if (returnD <= pickup) {
+      return res.status(400).json({ success: false, message: 'Return date must be after pickup date' });
+    }
+
     const durationDays = Math.ceil((returnD - pickup) / (1000 * 60 * 60 * 24)) || 1;
 
     let baseAmount;
