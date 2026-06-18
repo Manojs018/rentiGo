@@ -29,4 +29,46 @@ const ReviewSchema = new mongoose.Schema({
   isApproved: { type: Boolean, default: true },
 }, { timestamps: true });
 
+// Static method to get avg rating and update vehicle
+ReviewSchema.statics.getAverageRating = async function (vehicleId) {
+  const obj = await this.aggregate([
+    {
+      $match: { vehicle: vehicleId }
+    },
+    {
+      $group: {
+        _id: '$vehicle',
+        averageRating: { $avg: '$rating' },
+        reviewCount: { $sum: 1 }
+      }
+    }
+  ]);
+
+  try {
+    if (obj.length > 0) {
+      await mongoose.model('Vehicle').findByIdAndUpdate(vehicleId, {
+        rating: Math.round(obj[0].averageRating * 10) / 10,
+        reviewCount: obj[0].reviewCount
+      });
+    } else {
+      await mongoose.model('Vehicle').findByIdAndUpdate(vehicleId, {
+        rating: 0,
+        reviewCount: 0
+      });
+    }
+  } catch (err) {
+    console.error('Error updating vehicle rating:', err);
+  }
+};
+
+// Call getAverageRating after save
+ReviewSchema.post('save', async function () {
+  await this.constructor.getAverageRating(this.vehicle);
+});
+
+// Call getAverageRating before remove
+ReviewSchema.post('remove', async function () {
+  await this.constructor.getAverageRating(this.vehicle);
+});
+
 module.exports = mongoose.model('Review', ReviewSchema);
