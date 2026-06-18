@@ -64,6 +64,13 @@ exports.addVehicle = async (req, res) => {
     const vehicle = await Vehicle.create({ ...req.body, owner: req.user.id });
     res.status(201).json({ success: true, data: vehicle });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: 'Vehicle number already registered' });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ success: false, message: messages.join(', ') });
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -81,6 +88,13 @@ exports.updateVehicle = async (req, res) => {
     vehicle = await Vehicle.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.json({ success: true, data: vehicle });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: 'Vehicle number already registered' });
+    }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ success: false, message: messages.join(', ') });
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
