@@ -93,10 +93,10 @@ export default function AdminDashboard() {
   };
 
   const kpiCards = [
-    { label: 'Total Revenue', value: `₹${analytics?.kpis?.totalRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-    { label: 'Total Users', value: analytics?.kpis?.totalUsers, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Vehicles', value: analytics?.kpis?.totalVehicles, icon: Car, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { label: 'Pending Approvals', value: analytics?.kpis?.pendingVehicles, icon: AlertCircle, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    { label: 'Total Revenue', value: analytics?.kpis?.totalRevenue !== undefined ? `₹${analytics.kpis.totalRevenue.toLocaleString()}` : '₹0', icon: TrendingUp, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { label: 'Total Users', value: analytics?.kpis?.totalUsers ?? 0, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: 'Vehicles', value: analytics?.kpis?.totalVehicles ?? 0, icon: Car, color: 'text-green-400', bg: 'bg-green-500/10' },
+    { label: 'Pending Approvals', value: analytics?.kpis?.pendingVehicles ?? 0, icon: AlertCircle, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
   ];
 
   return (
