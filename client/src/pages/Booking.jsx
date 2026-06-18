@@ -42,7 +42,8 @@ export default function Booking() {
   });
 
   useEffect(() => {
-    fetchVehicles();
+    const targetCity = location.state?.city || form.city;
+    fetchVehicles(targetCity);
     // If vehicleId passed from Rentals/VehiclesSection, pre-select and skip to step 2
     if (location.state?.vehicleId) {
       setForm(prev => ({ ...prev, ...location.state }));
@@ -52,9 +53,10 @@ export default function Booking() {
     }
   }, [location.state]);
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = async (cityToFetch) => {
+    const activeCity = cityToFetch || form.city;
     try {
-      const { data } = await vehicleAPI.getAll({ city: form.city.toLowerCase() });
+      const { data } = await vehicleAPI.getAll({ city: activeCity.toLowerCase() });
       setVehicles(data.data || []);
     } catch (error) {
       // Mock vehicles
@@ -75,6 +77,11 @@ export default function Booking() {
       console.error('Could not pre-select vehicle:', error);
       // Still advance to step 1 so user can pick manually
     }
+  };
+
+  const handleCityChange = (newCity) => {
+    setForm(prev => ({ ...prev, city: newCity }));
+    fetchVehicles(newCity);
   };
 
   const handleBooking = async () => {
@@ -161,7 +168,7 @@ export default function Booking() {
                       {['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot'].map(c => (
                         <button
                           key={c}
-                          onClick={() => setForm({ ...form, city: c })}
+                          onClick={() => handleCityChange(c)}
                           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${form.city === c ? 'bg-orange-500 text-white' : 'glass text-slate-500 border-white/5'
                             }`}
                         >
