@@ -111,6 +111,19 @@ exports.updateBookingStatus = async (req, res) => {
     if (status === 'completed') booking.completedAt = Date.now();
     await booking.save();
 
+    // Sync vehicle availability based on booking status
+    const vehicle = await Vehicle.findById(booking.vehicle);
+    if (vehicle) {
+      const isNowAvailable = ['completed', 'cancelled'].includes(status);
+      vehicle.isAvailable = isNowAvailable;
+      await vehicle.save();
+
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('vehicle:availability_changed', { vehicleId: vehicle._id, isAvailable: isNowAvailable });
+      }
+    }
+
     res.json({ success: true, data: booking });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -134,6 +147,19 @@ exports.cancelBooking = async (req, res) => {
     booking.cancelReason = req.body.reason || 'Cancelled by customer';
     booking.cancelledAt = Date.now();
     await booking.save();
+
+    // Make vehicle available again on customer cancellation
+    const vehicle = await Vehicle.findById(booking.vehicle);
+    if (vehicle) {
+      vehicle.isAvailable = true;
+      await vehicle.save();
+
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('vehicle:availability_changed', { vehicleId: vehicle._id, isAvailable: true });
+      }
+    }
+
     res.json({ success: true, data: booking });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
