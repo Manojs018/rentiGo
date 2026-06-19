@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
 import ScrollProgress from './components/ui/ScrollProgress';
 import CursorGlow from './components/ui/CursorGlow';
 import FloatingWhatsApp from './components/ui/FloatingWhatsApp';
 import ParticlesBackground from './components/ui/ParticlesBackground';
 
 // Pages
+// ... (rest of imports unchanged)
 import Home from './pages/Home';
 import Rentals from './pages/Rentals';
 import Cities from './pages/Cities';
@@ -65,25 +67,27 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <ParticlesBackground />
-        <ScrollProgress />
-        <CursorGlow />
-        <AppRoutes />
-        <FloatingWhatsApp />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#111118',
-              color: '#fff',
-              border: '1px solid rgba(249,115,22,0.2)',
-              borderRadius: '10px',
-            },
-            success: { iconTheme: { primary: '#f97316', secondary: '#fff' } },
-          }}
-        />
-      </BrowserRouter>
+      <SocketProvider>
+        <BrowserRouter>
+          <ParticlesBackground />
+          <ScrollProgress />
+          <CursorGlow />
+          <AppRoutes />
+          <FloatingWhatsApp />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#111118',
+                color: '#fff',
+                border: '1px solid rgba(249,115,22,0.2)',
+                borderRadius: '10px',
+              },
+              success: { iconTheme: { primary: '#f97316', secondary: '#fff' } },
+            }}
+          />
+        </BrowserRouter>
+      </SocketProvider>
     </AuthProvider>
   );
 }
