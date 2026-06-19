@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Car, Plus, List, BarChart2, Wrench, Home, LogOut, CheckCircle, XCircle, Clock, Edit2, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { vehicleAPI, bookingAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -26,8 +27,44 @@ export default function OwnerDashboard() {
   const [form, setForm] = useState(emptyVehicle);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const socket = useSocket();
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAvailabilityChange = ({ vehicleId, isAvailable }) => {
+      setVehicles(prev => prev.map(v => 
+        v._id === vehicleId ? { ...v, isAvailable } : v
+      ));
+    };
+
+    socket.on('vehicle:availability_changed', handleAvailabilityChange);
+
+    return () => {
+      socket.off('vehicle:availability_changed', handleAvailabilityChange);
+    };
+  }, [socket]);
+
+  const handleToggleAvailability = async (id, currentVal) => {
+    const newVal = !currentVal;
+    try {
+      // Optimistic update
+      setVehicles(prev => prev.map(v => 
+        v._id === id ? { ...v, isAvailable: newVal } : v
+      ));
+      
+      await vehicleAPI.toggleAvailability(id, newVal);
+      toast.success(newVal ? 'Vehicle is now available for booking! 🟢' : 'Vehicle set to unavailable. 🔴');
+    } catch (err) {
+      // Revert
+      setVehicles(prev => prev.map(v => 
+        v._id === id ? { ...v, isAvailable: currentVal } : v
+      ));
+      toast.error('Failed to update availability status.');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -183,11 +220,32 @@ export default function OwnerDashboard() {
                   </div>
                   <h3 className="text-white font-bold mb-1">{v.brand} {v.model}</h3>
                   <p className="text-slate-400 text-xs mb-3 capitalize">{v.type} • {v.city}</p>
-                  <div className="flex items-center justify-between text-sm">
+                  
+                  <div className="flex items-center justify-between text-sm mt-3 pt-3 border-t border-white/[0.04]">
                     <span className="text-orange-400 font-bold">₹{v.dailyPrice?.toLocaleString()}/day</span>
-                    <span className={`text-xs ${v.isAvailable ? 'text-green-400' : 'text-red-400'}`}>
-                      {v.isAvailable ? '✓ Available' : '✗ Booked'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold ${v.isAvailable ? 'text-green-400' : 'text-slate-500'}`}>
+                        {v.isAvailable ? 'Available' : 'Unavailable'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAvailability(v._id, v.isAvailable)}
+                        disabled={v.status !== 'approved'}
+                        className={`w-10 h-6 rounded-full p-0.5 transition-all duration-300 relative ${
+                          v.status !== 'approved' ? 'opacity-30 cursor-not-allowed bg-slate-800' :
+                          v.isAvailable ? 'bg-orange-500' : 'bg-slate-700'
+                        }`}
+                      >
+                        <motion.div
+                          layout
+                          transition={{ type: "spring", stiffness: 700, damping: 30 }}
+                          className="w-5 h-5 bg-white rounded-full shadow-md"
+                          style={{
+                            float: v.isAvailable ? 'right' : 'left'
+                          }}
+                        />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex gap-2 mt-4 pt-4 border-t border-white/[0.05]">
                     <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg glass text-slate-400 hover:text-white text-xs transition-all"><Edit2 size={13} />Edit</button>
