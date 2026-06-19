@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { bookingAPI, vehicleAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -41,6 +42,8 @@ export default function Booking() {
     phone: user?.phone || '',
   });
 
+  const socket = useSocket();
+
   useEffect(() => {
     const targetCity = location.state?.city || form.city;
     fetchVehicles(targetCity);
@@ -53,6 +56,30 @@ export default function Booking() {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAvailabilityChange = ({ vehicleId, isAvailable }) => {
+      // Update vehicles list
+      setVehicles(prev => prev.map(v => 
+        v._id === vehicleId ? { ...v, isAvailable } : v
+      ));
+
+      // If user has selected this vehicle and it is no longer available, reset
+      if (selectedVehicle?._id === vehicleId && !isAvailable) {
+        toast.error('The selected vehicle has just been booked. Please choose another.');
+        setSelectedVehicle(null);
+        setStep(1);
+      }
+    };
+
+    socket.on('vehicle:availability_changed', handleAvailabilityChange);
+
+    return () => {
+      socket.off('vehicle:availability_changed', handleAvailabilityChange);
+    };
+  }, [socket, selectedVehicle]);
+
   const fetchVehicles = async (cityToFetch) => {
     const activeCity = cityToFetch || form.city;
     try {
@@ -61,9 +88,9 @@ export default function Booking() {
     } catch (error) {
       // Mock vehicles
       setVehicles([
-        { _id: '1', brand: 'Honda', model: 'City', type: 'car', dailyPrice: 2500, emoji: '🚗' },
-        { _id: '2', brand: 'Honda', model: 'Activa', type: 'activa', dailyPrice: 450, emoji: '🛵' },
-        { _id: '3', brand: 'Royal Enfield', model: 'Classic', type: 'bike', dailyPrice: 800, emoji: '🏍️' },
+        { _id: '1', brand: 'Honda', model: 'City', type: 'car', dailyPrice: 2500, emoji: '🚗', isAvailable: true },
+        { _id: '2', brand: 'Honda', model: 'Activa', type: 'activa', dailyPrice: 450, emoji: '🛵', isAvailable: true },
+        { _id: '3', brand: 'Royal Enfield', model: 'Classic', type: 'bike', dailyPrice: 800, emoji: '🏍️', isAvailable: true },
       ]);
     }
   };
@@ -179,27 +206,47 @@ export default function Booking() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {vehicles.map(v => (
-                      <div
-                        key={v._id}
-                        onClick={() => { setSelectedVehicle(v); setStep(2); }}
-                        className="glass card-glow rounded-3xl p-6 border border-white/5 hover:border-orange-500/30 transition-all cursor-pointer group"
-                      >
-                        <div className="h-40 flex items-center justify-center text-7xl group-hover:scale-110 transition-transform mb-4">
-                          {v.emoji || '🚗'}
-                        </div>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="text-white font-bold text-lg">{v.brand} {v.model}</h3>
-                            <p className="text-slate-500 text-xs uppercase tracking-widest">{v.type}</p>
+                    {vehicles.map(v => {
+                      const isAvail = v.isAvailable !== false;
+                      return (
+                        <div
+                          key={v._id}
+                          onClick={() => {
+                            if (!isAvail) {
+                              toast.error('This vehicle is currently unavailable');
+                              return;
+                            }
+                            setSelectedVehicle(v);
+                            setStep(2);
+                          }}
+                          className={`glass card-glow rounded-3xl p-6 border transition-all group relative ${
+                            isAvail 
+                              ? 'border-white/5 hover:border-orange-500/30 cursor-pointer' 
+                              : 'border-red-500/10 opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <span className={`absolute top-4 left-4 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                            isAvail ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
+                          }`}>
+                            {isAvail ? '● Available' : '● Booked'}
+                          </span>
+
+                          <div className="h-40 flex items-center justify-center text-7xl group-hover:scale-110 transition-transform mb-4">
+                            {v.emoji || '🚗'}
                           </div>
-                          <div className="text-right">
-                            <p className="text-orange-400 font-black text-xl">₹{v.dailyPrice}</p>
-                            <p className="text-slate-500 text-[10px]">PER DAY</p>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-white font-bold text-lg">{v.brand} {v.model}</h3>
+                              <p className="text-slate-500 text-xs uppercase tracking-widest">{v.type}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-orange-400 font-black text-xl">₹{v.dailyPrice}</p>
+                              <p className="text-slate-500 text-[10px]">PER DAY</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}
