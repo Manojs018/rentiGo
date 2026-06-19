@@ -127,3 +127,35 @@ exports.getMyVehicles = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Toggle vehicle availability status
+// @route   PUT /api/vehicles/:id/availability
+// @access  Owner/Admin
+exports.toggleVehicleAvailability = async (req, res) => {
+  try {
+    const { isAvailable } = req.body;
+    if (isAvailable === undefined) {
+      return res.status(400).json({ success: false, message: 'isAvailable status is required' });
+    }
+
+    const vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+
+    if (vehicle.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    vehicle.isAvailable = isAvailable;
+    await vehicle.save();
+
+    // Emit socket event if io is bound
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('vehicle:availability_changed', { vehicleId: vehicle._id, isAvailable });
+    }
+
+    res.json({ success: true, data: vehicle });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
