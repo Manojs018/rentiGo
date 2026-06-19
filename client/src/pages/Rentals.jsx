@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import { vehicleAPI } from '../services/api';
+import { useSocket } from '../context/SocketContext';
 import { Search, Filter, Fuel, Settings, MapPin, Star, Heart, ArrowRight, SlidersHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -26,10 +27,27 @@ export default function Rentals() {
     search: ''
   });
   const [showFilters, setShowFilters] = useState(false);
+  const socket = useSocket();
 
   useEffect(() => {
     fetchVehicles();
   }, [filters]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAvailabilityChange = ({ vehicleId, isAvailable }) => {
+      setVehicles(prev => prev.map(v => 
+        v._id === vehicleId ? { ...v, isAvailable } : v
+      ));
+    };
+
+    socket.on('vehicle:availability_changed', handleAvailabilityChange);
+
+    return () => {
+      socket.off('vehicle:availability_changed', handleAvailabilityChange);
+    };
+  }, [socket]);
 
   const fetchVehicles = async () => {
     setLoading(true);
@@ -39,12 +57,12 @@ export default function Rentals() {
     } catch (error) {
       // Mock data for demo
       const mockVehicles = [
-        { _id: '1', name: 'Honda City', brand: 'Honda', model: 'City', type: 'car', dailyPrice: 2500, fuelType: 'Petrol', transmission: 'Manual', city: 'Ahmedabad', rating: 4.8, available: true, images: [] },
-        { _id: '2', name: 'Hyundai Creta', brand: 'Hyundai', model: 'Creta', type: 'suv', dailyPrice: 3500, fuelType: 'Diesel', transmission: 'Automatic', city: 'Surat', rating: 4.9, available: true, images: [] },
-        { _id: '3', name: 'Royal Enfield Classic', brand: 'Royal Enfield', model: 'Classic 350', type: 'bike', dailyPrice: 800, fuelType: 'Petrol', transmission: 'Manual', city: 'Ahmedabad', rating: 4.7, available: true, images: [] },
-        { _id: '4', name: 'Honda Activa 6G', brand: 'Honda', model: 'Activa 6G', type: 'activa', dailyPrice: 450, fuelType: 'Petrol', transmission: 'Automatic', city: 'Vadodara', rating: 4.6, available: true, images: [] },
-        { _id: '5', name: 'Toyota Innova', brand: 'Toyota', model: 'Innova', type: 'taxi', dailyPrice: 4000, fuelType: 'Diesel', transmission: 'Manual', city: 'Rajkot', rating: 4.8, available: true, images: [] },
-        { _id: '6', name: 'Suzuki Swift', brand: 'Suzuki', model: 'Swift', type: 'car', dailyPrice: 1800, fuelType: 'Petrol', transmission: 'Manual', city: 'Surat', rating: 4.5, available: false, images: [] },
+        { _id: '1', name: 'Honda City', brand: 'Honda', model: 'City', type: 'car', dailyPrice: 2500, fuelType: 'Petrol', transmission: 'Manual', city: 'Ahmedabad', rating: 4.8, isAvailable: true, images: [] },
+        { _id: '2', name: 'Hyundai Creta', brand: 'Hyundai', model: 'Creta', type: 'suv', dailyPrice: 3500, fuelType: 'Diesel', transmission: 'Automatic', city: 'Surat', rating: 4.9, isAvailable: true, images: [] },
+        { _id: '3', name: 'Royal Enfield Classic', brand: 'Royal Enfield', model: 'Classic 350', type: 'bike', dailyPrice: 800, fuelType: 'Petrol', transmission: 'Manual', city: 'Ahmedabad', rating: 4.7, isAvailable: true, images: [] },
+        { _id: '4', name: 'Honda Activa 6G', brand: 'Honda', model: 'Activa 6G', type: 'activa', dailyPrice: 450, fuelType: 'Petrol', transmission: 'Automatic', city: 'Vadodara', rating: 4.6, isAvailable: true, images: [] },
+        { _id: '5', name: 'Toyota Innova', brand: 'Toyota', model: 'Innova', type: 'taxi', dailyPrice: 4000, fuelType: 'Diesel', transmission: 'Manual', city: 'Rajkot', rating: 4.8, isAvailable: true, images: [] },
+        { _id: '6', name: 'Suzuki Swift', brand: 'Suzuki', model: 'Swift', type: 'car', dailyPrice: 1800, fuelType: 'Petrol', transmission: 'Manual', city: 'Surat', rating: 4.5, isAvailable: false, images: [] },
       ];
       setVehicles(mockVehicles);
     } finally {
@@ -224,9 +242,9 @@ export default function Rentals() {
                           <Heart size={18} className={favorites.includes(v._id) ? 'fill-red-500 text-red-500' : 'text-slate-400'} />
                         </button>
                         <span className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                          v.available ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
+                          v.isAvailable ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
                         }`}>
-                          {v.available ? 'Available' : 'Booked'}
+                          {v.isAvailable ? 'Available' : 'Booked'}
                         </span>
                       </div>
 
@@ -262,15 +280,15 @@ export default function Rentals() {
                         </div>
 
                         <Link
-                          to={v.available ? `/booking` : '#'}
-                          state={v.available ? { vehicleId: v._id } : undefined}
+                          to={v.isAvailable ? `/booking` : '#'}
+                          state={v.isAvailable ? { vehicleId: v._id } : undefined}
                           className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                            v.available
+                            v.isAvailable
                               ? 'btn-primary'
                               : 'bg-white/5 text-slate-500 border border-white/10 cursor-not-allowed'
                           }`}
                         >
-                          {v.available ? (
+                          {v.isAvailable ? (
                             <>Book This Ride <ArrowRight size={16} /></>
                           ) : (
                             'Currently Unavailable'
