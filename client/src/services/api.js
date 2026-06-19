@@ -43,6 +43,7 @@ export const vehicleAPI = {
   getMy: () => api.get('/vehicles/my'),
   add: (data) => api.post('/vehicles', data),
   update: (id, data) => api.put(`/vehicles/${id}`, data),
+  toggleAvailability: (id, isAvailable) => api.put(`/vehicles/${id}/availability`, { isAvailable }),
   remove: (id) => api.delete(`/vehicles/${id}`),
 };
 
