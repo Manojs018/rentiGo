@@ -59,9 +59,30 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const http = require('http');
+const { Server } = require('socket.io');
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    credentials: true,
+  }
+});
+
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log(`🔌 Client connected: ${socket.id}`);
+  
+  socket.on('disconnect', () => {
+    console.log(`🔌 Client disconnected: ${socket.id}`);
+  });
+});
+
+const PORT = process.env.PORT || 5005;
+server.listen(PORT, () => {
   console.log(`🚀 RentiGo Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
 });
 
-module.exports = app;
+module.exports = server;
