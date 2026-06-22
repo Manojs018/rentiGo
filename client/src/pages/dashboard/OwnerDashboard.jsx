@@ -27,6 +27,8 @@ export default function OwnerDashboard() {
   const [form, setForm] = useState(emptyVehicle);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [removingVehicle, setRemovingVehicle] = useState(null);
   const socket = useSocket();
 
   useEffect(() => { fetchData(); }, []);
@@ -100,6 +102,40 @@ export default function OwnerDashboard() {
     }
   };
 
+  const handleOpenEdit = (vehicle) => {
+    setEditForm({ ...vehicle });
+  };
+
+  const handleUpdateVehicle = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await vehicleAPI.update(editForm._id, editForm);
+      toast.success('Vehicle details updated successfully! 🎉');
+      setEditForm(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update vehicle');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveVehicle = async () => {
+    if (!removingVehicle) return;
+    setLoading(true);
+    try {
+      await vehicleAPI.remove(removingVehicle._id);
+      toast.success('Vehicle removed successfully! 🗑️');
+      setRemovingVehicle(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove vehicle');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpdateStatus = async (bookingId, status) => {
     try {
       await bookingAPI.updateStatus(bookingId, { status });
@@ -110,7 +146,33 @@ export default function OwnerDashboard() {
     }
   };
 
-  const totalRevenue = bookings.filter(b => ['confirmed', 'completed'].includes(b.status)).reduce((s, b) => s + (b.totalAmount || 0), 0);
+  const paidBookings = bookings.filter(b => ['confirmed', 'completed', 'active'].includes(b.status));
+  const totalRevenue = paidBookings.reduce((s, b) => s + (b.totalAmount || 0), 0);
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const thisMonthRevenue = paidBookings
+    .filter(b => {
+      const date = new Date(b.createdAt || b.pickupDate);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    })
+    .reduce((s, b) => s + (b.totalAmount || 0), 0);
+
+  const pendingPayout = bookings
+    .filter(b => ['confirmed', 'active'].includes(b.status))
+    .reduce((s, b) => s + (b.totalAmount || 0), 0);
+
+  const getVehicleRevenue = (vehicleId) => {
+    return paidBookings
+      .filter(b => b.vehicle?._id === vehicleId || b.vehicle === vehicleId)
+      .reduce((s, b) => s + (b.totalAmount || 0), 0);
+  };
+
+  const getVehiclePercentage = (vehicleId) => {
+    if (totalRevenue === 0) return 0;
+    return Math.min(100, Math.round((getVehicleRevenue(vehicleId) / totalRevenue) * 100));
+  };
 
   return (
     <div className="min-h-screen bg-dark-900 flex">
@@ -248,8 +310,8 @@ export default function OwnerDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4 pt-4 border-t border-white/[0.05]">
-                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg glass text-slate-400 hover:text-white text-xs transition-all"><Edit2 size={13} />Edit</button>
-                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-red-400 hover:bg-red-500/10 text-xs transition-all"><Trash2 size={13} />Remove</button>
+                    <button onClick={() => handleOpenEdit(v)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg glass text-slate-400 hover:text-white text-xs transition-all"><Edit2 size={13} />Edit</button>
+                    <button onClick={() => setRemovingVehicle(v)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-red-400 hover:bg-red-500/10 text-xs transition-all"><Trash2 size={13} />Remove</button>
                   </div>
                 </motion.div>
               ))}
@@ -340,8 +402,8 @@ export default function OwnerDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, color: 'text-orange-400' },
-                  { label: 'This Month', value: `₹${Math.round(totalRevenue * 0.35).toLocaleString()}`, color: 'text-green-400' },
-                  { label: 'Pending Payout', value: `₹${Math.round(totalRevenue * 0.1).toLocaleString()}`, color: 'text-yellow-400' },
+                  { label: 'This Month', value: `₹${thisMonthRevenue.toLocaleString()}`, color: 'text-green-400' },
+                  { label: 'Pending Payout', value: `₹${pendingPayout.toLocaleString()}`, color: 'text-yellow-400' },
                 ].map(s => (
                   <div key={s.label} className="glass card-glow rounded-2xl p-6 border border-white/[0.07]">
                     <div className={`text-3xl font-black ${s.color}`}>{s.value}</div>
@@ -351,22 +413,132 @@ export default function OwnerDashboard() {
               </div>
               <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07]">
                 <h3 className="text-white font-bold mb-4">Revenue by Vehicle</h3>
-                <div className="space-y-3">
-                  {vehicles.map(v => (
-                    <div key={v._id} className="flex items-center gap-4">
-                      <span className="text-2xl">{v.emoji || '🚗'}</span>
-                      <div className="flex-1">
-                        <p className="text-white text-sm font-medium">{v.brand} {v.model}</p>
-                        <div className="w-full bg-white/5 rounded-full h-2 mt-1.5">
-                          <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full" style={{ width: `${Math.random() * 70 + 20}%` }} />
+                <div className="space-y-4">
+                  {vehicles.map(v => {
+                    const rev = getVehicleRevenue(v._id);
+                    const pct = getVehiclePercentage(v._id);
+                    return (
+                      <div key={v._id} className="flex items-center gap-4">
+                        <span className="text-2xl">{v.emoji || '🚗'}</span>
+                        <div className="flex-1">
+                          <p className="text-white text-sm font-medium">{v.brand} {v.model}</p>
+                          <div className="w-full bg-white/5 rounded-full h-2 mt-1.5">
+                            <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                          </div>
                         </div>
+                        <span className="text-orange-400 font-semibold text-sm">₹{rev.toLocaleString()}</span>
                       </div>
-                      <span className="text-orange-400 font-semibold text-sm">₹{(v.totalBookings * v.dailyPrice).toLocaleString()}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  {vehicles.length === 0 && (
+                    <p className="text-slate-500 text-sm text-center py-6">No vehicles in your fleet to compute stats.</p>
+                  )}
                 </div>
               </div>
             </motion.div>
+          )}
+
+          {/* Edit Vehicle Modal */}
+          {editForm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
+              <div className="glass card-glow rounded-2xl p-6 border border-white/10 w-full max-w-2xl my-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white">Edit Vehicle Details</h2>
+                  <button onClick={() => setEditForm(null)} className="text-slate-400 hover:text-white text-sm">✕ Close</button>
+                </div>
+                <form onSubmit={handleUpdateVehicle} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Vehicle Number *</label>
+                      <input className="input-field" placeholder="GJ01AB1234" value={editForm.vehicleNumber} onChange={e => setEditForm({ ...editForm, vehicleNumber: e.target.value })} required />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Brand *</label>
+                      <input className="input-field" placeholder="Honda" value={editForm.brand} onChange={e => setEditForm({ ...editForm, brand: e.target.value })} required />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Model *</label>
+                      <input className="input-field" placeholder="City" value={editForm.model} onChange={e => setEditForm({ ...editForm, model: e.target.value })} required />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Type *</label>
+                      <select className="input-field" value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value })}>
+                        <option value="car">Car</option>
+                        <option value="suv">SUV</option>
+                        <option value="bike">Bike</option>
+                        <option value="activa">Activa</option>
+                        <option value="taxi">Taxi</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Fuel Type</label>
+                      <select className="input-field" value={editForm.fuelType} onChange={e => setEditForm({ ...editForm, fuelType: e.target.value })}>
+                        <option value="petrol">Petrol</option>
+                        <option value="diesel">Diesel</option>
+                        <option value="electric">Electric</option>
+                        <option value="cng">CNG</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Transmission</label>
+                      <select className="input-field" value={editForm.transmission} onChange={e => setEditForm({ ...editForm, transmission: e.target.value })}>
+                        <option value="manual">Manual</option>
+                        <option value="automatic">Automatic</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Daily Price (₹) *</label>
+                      <input type="number" className="input-field" placeholder="1200" value={editForm.dailyPrice} onChange={e => setEditForm({ ...editForm, dailyPrice: e.target.value })} required />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Weekly Price (₹)</label>
+                      <input type="number" className="input-field" placeholder="7000" value={editForm.weeklyPrice || ''} onChange={e => setEditForm({ ...editForm, weeklyPrice: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">Monthly Price (₹)</label>
+                      <input type="number" className="input-field" placeholder="20000" value={editForm.monthlyPrice || ''} onChange={e => setEditForm({ ...editForm, monthlyPrice: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1.5 block">City *</label>
+                      <select className="input-field" value={editForm.city} onChange={e => setEditForm({ ...editForm, city: e.target.value })}>
+                        <option value="ahmedabad">Ahmedabad</option>
+                        <option value="surat">Surat</option>
+                        <option value="vadodara">Vadodara</option>
+                        <option value="rajkot">Rajkot</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1.5 block">Description</label>
+                    <textarea className="input-field h-24 resize-none" placeholder="Describe your vehicle..." value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
+                  </div>
+                  <div className="flex gap-3 justify-end pt-4">
+                    <button type="button" onClick={() => setEditForm(null)} className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-slate-300 text-sm font-semibold transition-all">Cancel</button>
+                    <button type="submit" disabled={loading} className="btn-primary px-5 py-2.5 text-sm">
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Remove Vehicle Confirmation Modal */}
+          {removingVehicle && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+              <div className="glass card-glow rounded-2xl p-6 border border-white/10 w-full max-w-md">
+                <h2 className="text-xl font-bold text-white mb-2">Remove Vehicle</h2>
+                <p className="text-slate-400 text-sm mb-6">
+                  Are you sure you want to remove <span className="text-white font-bold">{removingVehicle.brand} {removingVehicle.model}</span> ({removingVehicle.vehicleNumber}) from your fleet? This action cannot be undone.
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button type="button" onClick={() => setRemovingVehicle(null)} className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-slate-300 text-sm font-semibold transition-all">Cancel</button>
+                  <button type="button" onClick={handleRemoveVehicle} disabled={loading} className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-all">
+                    {loading ? 'Removing...' : '🗑️ Yes, Remove'}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
