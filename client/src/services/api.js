@@ -34,6 +34,8 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  getFavorites: () => api.get('/auth/favorites'),
+  toggleFavorite: (vehicleId) => api.post(`/auth/favorites/${vehicleId}`),
 };
 
 // ── Vehicles ──────────────────────────────────
@@ -77,4 +79,12 @@ export const reviewAPI = {
   add: (data) => api.post('/reviews', data),
 };
 
+// ── Notifications ─────────────────────────────
+export const notificationAPI = {
+  getAll: () => api.get('/notifications'),
+  markRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllRead: () => api.put('/notifications/read-all'),
+};
+
 export default api;
+
