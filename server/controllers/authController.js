@@ -85,7 +85,7 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).populate('favoriteVehicles');
     res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -102,7 +102,7 @@ exports.updateProfile = async (req, res) => {
       req.user.id,
       { name, phone, city, avatar },
       { new: true, runValidators: true }
-    );
+    ).populate('favoriteVehicles');
     res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -125,3 +125,47 @@ exports.forgotPassword = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Get user's favorites
+// @route   GET /api/auth/favorites
+// @access  Private
+exports.getFavorites = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('favoriteVehicles');
+    res.json({ success: true, data: user.favoriteVehicles || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Toggle favorite vehicle
+// @route   POST /api/auth/favorites/:vehicleId
+// @access  Private
+exports.toggleFavorite = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const index = user.favoriteVehicles.indexOf(vehicleId);
+    let isFavorite = false;
+    if (index === -1) {
+      user.favoriteVehicles.push(vehicleId);
+      isFavorite = true;
+    } else {
+      user.favoriteVehicles.splice(index, 1);
+    }
+
+    await user.save();
+    res.json({
+      success: true,
+      message: isFavorite ? 'Added to favorites' : 'Removed from favorites',
+      isFavorite,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
