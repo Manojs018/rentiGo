@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
 const Booking = require('../models/Booking');
 const Review = require('../models/Review');
+const Notification = require('../models/Notification');
+
 
 // @desc    Get platform analytics
 // @route   GET /api/admin/analytics
@@ -118,6 +120,20 @@ exports.approveVehicle = async (req, res) => {
       { new: true }
     );
     if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+
+    // Notify owner
+    try {
+      await Notification.create({
+        user: vehicle.owner,
+        title: `Vehicle ${status === 'approved' ? 'Approved' : 'Rejected'}`,
+        message: `Your vehicle ${vehicle.brand} ${vehicle.model} (${vehicle.vehicleNumber}) has been ${status} by the administrator.${adminNote ? ' Note: ' + adminNote : ''}`,
+        type: 'approval',
+        link: '/dashboard'
+      });
+    } catch (err) {
+      console.error('Failed to notify owner of vehicle status update:', err);
+    }
+
     res.json({ success: true, data: vehicle });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
