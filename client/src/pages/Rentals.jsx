@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
-import { vehicleAPI } from '../services/api';
+import { vehicleAPI, authAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { Search, Filter, Fuel, Settings, MapPin, Star, Heart, ArrowRight, SlidersHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const vehicleIcons = {
   car: '🚗',
@@ -27,11 +29,29 @@ export default function Rentals() {
     search: ''
   });
   const [showFilters, setShowFilters] = useState(false);
+  const { isAuthenticated } = useAuth();
   const socket = useSocket();
 
   useEffect(() => {
     fetchVehicles();
   }, [filters]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchFavorites();
+    } else {
+      setFavorites([]);
+    }
+  }, [isAuthenticated]);
+
+  const fetchFavorites = async () => {
+    try {
+      const { data } = await authAPI.getFavorites();
+      setFavorites(data.data.map(v => v._id));
+    } catch (error) {
+      console.error('Failed to fetch favorites', error);
+    }
+  };
 
   useEffect(() => {
     if (!socket) return;
@@ -70,9 +90,24 @@ export default function Rentals() {
     }
   };
 
-  const toggleFav = (id) => {
-    setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
+  const toggleFav = async (id) => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to manage favorites.');
+      return;
+    }
+    const isFav = favorites.includes(id);
+    // Optimistic UI update
+    setFavorites(prev => isFav ? prev.filter(f => f !== id) : [...prev, id]);
+    try {
+      const { data } = await authAPI.toggleFavorite(id);
+      toast.success(data.message || 'Updated favorites');
+    } catch (error) {
+      // Revert if API call fails
+      setFavorites(prev => isFav ? [...prev, id] : prev.filter(f => f !== id));
+      toast.error('Failed to update favorites.');
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-dark-900">
