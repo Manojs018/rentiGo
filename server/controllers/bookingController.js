@@ -1,5 +1,7 @@
 const Booking = require('../models/Booking');
 const Vehicle = require('../models/Vehicle');
+const Notification = require('../models/Notification');
+
 
 // @desc    Create booking
 // @route   POST /api/bookings
@@ -57,6 +59,28 @@ exports.createBooking = async (req, res) => {
     });
 
     await booking.populate(['vehicle', 'owner']);
+
+    // Create notifications
+    try {
+      await Notification.create({
+        user: req.user.id,
+        title: 'Booking Requested',
+        message: `Your booking request for ${vehicle.brand} ${vehicle.model} has been submitted.`,
+        type: 'booking',
+        link: '/dashboard'
+      });
+
+      await Notification.create({
+        user: vehicle.owner,
+        title: 'New Booking Request',
+        message: `${customerName || req.user.name} has requested to book your ${vehicle.brand} ${vehicle.model}.`,
+        type: 'booking',
+        link: '/dashboard'
+      });
+    } catch (err) {
+      console.error('Failed to create booking notifications:', err);
+    }
+
     res.status(201).json({ success: true, data: booking });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -122,7 +146,39 @@ exports.updateBookingStatus = async (req, res) => {
       if (io) {
         io.emit('vehicle:availability_changed', { vehicleId: vehicle._id, isAvailable: isNowAvailable });
       }
+
+      // Create notifications based on status change
+      try {
+        if (status === 'confirmed') {
+          await Notification.create({
+            user: booking.customer,
+            title: 'Booking Confirmed! 🎉',
+            message: `Your booking request for ${vehicle.brand} ${vehicle.model} has been approved by the owner.`,
+            type: 'booking',
+            link: '/dashboard'
+          });
+        } else if (status === 'cancelled') {
+          await Notification.create({
+            user: booking.customer,
+            title: 'Booking Cancelled',
+            message: `Your booking request for ${vehicle.brand} ${vehicle.model} was cancelled. Reason: ${cancelReason || 'Not specified'}.`,
+            type: 'booking',
+            link: '/dashboard'
+          });
+        } else if (status === 'completed') {
+          await Notification.create({
+            user: booking.customer,
+            title: 'Booking Completed! 🏁',
+            message: `Your ride with ${vehicle.brand} ${vehicle.model} is completed. Hope you had a great experience!`,
+            type: 'booking',
+            link: '/dashboard'
+          });
+        }
+      } catch (err) {
+        console.error('Failed to create status update notification:', err);
+      }
     }
+
 
     res.json({ success: true, data: booking });
   } catch (error) {
@@ -157,6 +213,19 @@ exports.cancelBooking = async (req, res) => {
       const io = req.app.get('io');
       if (io) {
         io.emit('vehicle:availability_changed', { vehicleId: vehicle._id, isAvailable: true });
+      }
+
+      // Notify owner about customer cancellation
+      try {
+        await Notification.create({
+          user: booking.owner,
+          title: 'Booking Cancelled By Customer',
+          message: `The booking request for your ${vehicle.brand} ${vehicle.model} was cancelled by the customer.`,
+          type: 'booking',
+          link: '/dashboard'
+        });
+      } catch (err) {
+        console.error('Failed to create customer cancellation notification:', err);
       }
     }
 
