@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { bookingAPI } from '../../services/api';
+import { bookingAPI, authAPI, notificationAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 const statusColors = {
@@ -29,9 +29,22 @@ export default function CustomerDashboard() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [favorites, setFavorites] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'favorites') {
+      fetchFavorites();
+    } else if (activeTab === 'notifications') {
+      fetchNotifications();
+    }
+  }, [activeTab]);
 
   const fetchBookings = async () => {
     try {
@@ -46,6 +59,59 @@ export default function CustomerDashboard() {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    setFavoritesLoading(true);
+    try {
+      const { data } = await authAPI.getFavorites();
+      setFavorites(data.data || []);
+    } catch {
+      toast.error('Failed to load favorites');
+    } finally {
+      setFavoritesLoading(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    setNotificationsLoading(true);
+    try {
+      const { data } = await notificationAPI.getAll();
+      setNotifications(data.data || []);
+    } catch {
+      toast.error('Failed to load notifications');
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const handleRemoveFavorite = async (vehicleId) => {
+    try {
+      await authAPI.toggleFavorite(vehicleId);
+      setFavorites(prev => prev.filter(v => v._id !== vehicleId));
+      toast.success('Removed from favorites');
+    } catch {
+      toast.error('Failed to remove from favorites');
+    }
+  };
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await notificationAPI.markRead(id);
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch {
+      toast.error('Failed to mark notification as read');
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationAPI.markAllRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      toast.success('All notifications marked as read');
+    } catch {
+      toast.error('Failed to mark all as read');
     }
   };
 
@@ -243,13 +309,125 @@ export default function CustomerDashboard() {
             </motion.div>
           )}
 
-          {/* Favorites & Notifications placeholder */}
-          {(activeTab === 'favorites' || activeTab === 'notifications') && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass card-glow rounded-2xl p-12 text-center border border-white/[0.07]">
-              <div className="text-5xl mb-4">{activeTab === 'favorites' ? '❤️' : '🔔'}</div>
-              <h3 className="text-white font-bold text-lg mb-2">{activeTab === 'favorites' ? 'Your Favorites' : 'Notifications'}</h3>
-              <p className="text-slate-400 text-sm">No {activeTab} yet. Start exploring vehicles!</p>
-              <Link to="/rentals" className="btn-primary mt-6 inline-flex">Browse Vehicles</Link>
+          {/* Favorites Tab */}
+          {activeTab === 'favorites' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              {favoritesLoading ? (
+                <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+              ) : favorites.length === 0 ? (
+                <div className="glass card-glow rounded-2xl p-12 text-center border border-white/[0.07]">
+                  <div className="text-5xl mb-4">❤️</div>
+                  <h3 className="text-white font-bold text-lg mb-2">Your Favorites</h3>
+                  <p className="text-slate-400 text-sm mb-6">No favorites yet. Start exploring vehicles!</p>
+                  <Link to="/rentals" className="btn-primary inline-flex">Browse Vehicles</Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {favorites.map(v => (
+                    <motion.div key={v._id} layout
+                      className="glass card-glow rounded-2xl overflow-hidden border border-white/[0.07] hover:border-orange-500/20 transition-all duration-300 relative group">
+                      <div className="relative h-40 bg-gradient-to-br from-dark-600 to-dark-700 flex items-center justify-center">
+                        <span className="text-7xl group-hover:scale-105 transition-transform duration-300">
+                          {v.type === 'car' ? '🚗' : v.type === 'suv' ? '🚙' : v.type === 'bike' ? '🏍️' : v.type === 'activa' ? '🛵' : '🚖'}
+                        </span>
+                        <button onClick={() => handleRemoveFavorite(v._id)}
+                          className="absolute top-4 right-4 w-9 h-9 glass rounded-full flex items-center justify-center hover:scale-105 text-red-500 transition-all">
+                          <Heart size={16} className="fill-red-500" />
+                        </button>
+                        <span className={`absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          v.isAvailable ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
+                        }`}>
+                          {v.isAvailable ? 'Available' : 'Booked'}
+                        </span>
+                      </div>
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h4 className="text-white font-bold text-base truncate">{v.brand} {v.model}</h4>
+                            <p className="text-slate-500 text-xs mt-1 capitalize">{v.type} • {v.city}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-orange-500 font-extrabold text-lg">₹{v.dailyPrice?.toLocaleString()}</span>
+                            <span className="text-slate-500 text-[10px] block font-bold uppercase">per day</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Link to="/rentals" className="flex-1 py-2 text-center text-xs font-semibold glass text-slate-400 hover:text-white rounded-xl transition-all">View Details</Link>
+                          <Link to={v.isAvailable ? "/booking" : "#"} state={v.isAvailable ? { vehicleId: v._id } : undefined}
+                            className={`flex-1 py-2 text-center text-xs font-semibold rounded-xl transition-all ${
+                              v.isAvailable ? 'btn-primary' : 'bg-white/5 text-slate-500 border border-white/10 cursor-not-allowed'
+                            }`}>
+                            {v.isAvailable ? 'Book Now' : 'Unavailable'}
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-3xl">
+              {notificationsLoading ? (
+                <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400 text-sm">
+                        {notifications.filter(n => !n.isRead).length} unread notifications
+                      </span>
+                    </div>
+                    {notifications.some(n => !n.isRead) && (
+                      <button onClick={handleMarkAllRead} className="text-orange-400 text-xs font-semibold hover:text-orange-300 transition-colors">
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {notifications.map(n => {
+                      const Icon = n.type === 'booking' ? Calendar : n.type === 'approval' ? CheckCircle : Bell;
+                      const iconColor = n.type === 'booking' ? 'text-blue-400' : n.type === 'approval' ? 'text-green-400' : 'text-amber-400';
+                      return (
+                        <div key={n._id} className={`glass p-4 rounded-xl border transition-all flex items-start gap-4 ${
+                          n.isRead ? 'border-white/[0.04] opacity-75' : 'border-orange-500/10 shadow-glow-sm bg-orange-500/[0.02]'
+                        }`}>
+                          <div className={`p-2 rounded-lg bg-white/[0.04] mt-0.5 ${iconColor}`}>
+                            <Icon size={16} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-4">
+                              <h4 className={`text-sm font-bold ${n.isRead ? 'text-slate-300' : 'text-white'}`}>{n.title}</h4>
+                              <span className="text-slate-500 text-[10px] whitespace-nowrap">
+                                {new Date(n.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="text-slate-400 text-xs mt-1 leading-relaxed">{n.message}</p>
+                          </div>
+                          {!n.isRead && (
+                            <button onClick={() => handleMarkAsRead(n._id)}
+                              className="text-orange-400 hover:text-orange-300 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-orange-500/10 transition-all self-center">
+                              Mark Read
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {notifications.length === 0 && (
+                      <div className="glass card-glow rounded-2xl p-12 text-center border border-white/[0.07]">
+                        <div className="text-5xl mb-4">🔔</div>
+                        <h3 className="text-white font-bold text-lg mb-2">All Caught Up!</h3>
+                        <p className="text-slate-400 text-sm">No notifications yet. We'll update you when there's news.</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
         </div>
@@ -257,3 +435,4 @@ export default function CustomerDashboard() {
     </div>
   );
 }
+
