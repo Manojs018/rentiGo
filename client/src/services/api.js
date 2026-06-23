@@ -34,6 +34,7 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => api.put(`/auth/reset-password/${token}`, { password }),
   getFavorites: () => api.get('/auth/favorites'),
   toggleFavorite: (vehicleId) => api.post(`/auth/favorites/${vehicleId}`),
 };
