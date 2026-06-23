@@ -19,6 +19,7 @@ import Booking from './pages/Booking';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/dashboard/CustomerDashboard';
 import OwnerDashboard from './pages/dashboard/OwnerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
@@ -44,6 +45,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/dashboard" element={
         <ProtectedRoute roles={['customer']}>
           <CustomerDashboard />
