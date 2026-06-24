@@ -27,7 +27,7 @@ import { chromium } from 'playwright';
   try {
     console.log('Navigating to homepage...');
     await page.goto('http://localhost:5173/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     console.log('Filling out Quick Booking form on homepage...');
     await page.fill('input[placeholder="Rahul Sharma"]', 'Test User');
