@@ -41,7 +41,7 @@ function authReducer(state, action) {
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Persist to localStorage
+
   useEffect(() => {
     if (state.token) {
       localStorage.setItem('rentigo_token', state.token);
