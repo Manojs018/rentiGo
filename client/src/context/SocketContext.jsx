@@ -11,7 +11,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
     const socketUrl = apiUrl.replace(/\/api$/, '');
-    
+
     console.log(`🔌 Connecting to Socket server at ${socketUrl}`);
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
