@@ -1,5 +1,7 @@
 import { chromium } from 'playwright';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -28,8 +30,45 @@ import path from 'path';
   // Wait a bit for animations to finish
   await page.waitForTimeout(2000);
 
-  // Take a screenshot
-  const screenshotPath = 'C:\\Users\\Manoj\\.gemini\\antigravity\\brain\\fa71501d-cc7f-483d-920a-d379f9d50320\\artifacts\\dashboard_preview.png';
+  // Resolve screenshot path dynamically
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  let screenshotPath = '';
+  
+  let conversationId = '';
+  if (process.env.ANTIGRAVITY_SOURCE_METADATA) {
+    try {
+      const metadata = JSON.parse(process.env.ANTIGRAVITY_SOURCE_METADATA);
+      conversationId = metadata.tool?.conversationId || '';
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  const userProfile = process.env.USERPROFILE || process.env.HOME || '';
+  if (conversationId && userProfile) {
+    // Check if running within the agent environment and determine if we should write to the agent's artifacts
+    for (const appFolderName of ['antigravity-ide', 'antigravity']) {
+      const brainDir = path.join(userProfile, '.gemini', appFolderName, 'brain', conversationId);
+      if (fs.existsSync(brainDir)) {
+        const artifactsDir = path.join(brainDir, 'artifacts');
+        if (!fs.existsSync(artifactsDir)) {
+          fs.mkdirSync(artifactsDir, { recursive: true });
+        }
+        screenshotPath = path.join(artifactsDir, 'dashboard_preview.png');
+        break;
+      }
+    }
+  }
+
+  // Fallback: save to a local screenshots directory in the workspace
+  if (!screenshotPath) {
+    const localScreenshotsDir = path.join(__dirname, 'screenshots');
+    if (!fs.existsSync(localScreenshotsDir)) {
+      fs.mkdirSync(localScreenshotsDir, { recursive: true });
+    }
+    screenshotPath = path.join(localScreenshotsDir, 'dashboard_preview.png');
+  }
+
   await page.screenshot({ path: screenshotPath, fullPage: true });
 
   console.log(`Screenshot saved to ${screenshotPath}`);
