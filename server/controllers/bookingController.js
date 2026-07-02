@@ -1,6 +1,8 @@
 const Booking = require('../models/Booking');
 const Vehicle = require('../models/Vehicle');
 const Notification = require('../models/Notification');
+const User = require('../models/User');
+const { updateUserEcoStats, getDiscountPercentage } = require('../utils/ecoHelper');
 
 
 // @desc    Create booking
@@ -37,8 +39,14 @@ exports.createBooking = async (req, res) => {
       baseAmount = vehicle.dailyPrice * durationDays;
     }
 
-    const taxAmount = Math.round(baseAmount * 0.18); // 18% GST
-    const totalAmount = baseAmount + taxAmount;
+    // Calculate loyalty discount based on customer's eco points
+    const userObj = await User.findById(req.user.id);
+    const discountPercent = getDiscountPercentage(userObj?.ecoPoints || 0);
+    const discountAmount = discountPercent > 0 ? Math.round(baseAmount * (discountPercent / 100)) : 0;
+    const netBaseAmount = baseAmount - discountAmount;
+
+    const taxAmount = Math.round(netBaseAmount * 0.18); // 18% GST on discounted amount
+    const totalAmount = netBaseAmount + taxAmount;
 
     const booking = await Booking.create({
       customer: req.user.id,
@@ -50,6 +58,7 @@ exports.createBooking = async (req, res) => {
       rentalPlan,
       durationDays,
       baseAmount,
+      discountAmount,
       taxAmount,
       totalAmount,
       specialRequests,
@@ -93,7 +102,7 @@ exports.createBooking = async (req, res) => {
 exports.getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({ customer: req.user.id })
-      .populate('vehicle', 'brand model type thumbnail city dailyPrice')
+      .populate('vehicle', 'brand model type fuelType thumbnail city dailyPrice')
       .sort('-createdAt');
     res.json({ success: true, data: bookings });
   } catch (error) {
@@ -129,11 +138,17 @@ exports.updateBookingStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
+    const oldStatus = booking.status;
     booking.status = status;
     if (status === 'cancelled') { booking.cancelReason = cancelReason; booking.cancelledAt = Date.now(); }
     if (status === 'confirmed') booking.confirmedAt = Date.now();
     if (status === 'completed') booking.completedAt = Date.now();
     await booking.save();
+
+    // Sync eco stats if status transitioned to/from completed
+    if (oldStatus === 'completed' || status === 'completed') {
+      await updateUserEcoStats(booking.customer);
+    }
 
     // Sync vehicle availability based on booking status
     const vehicle = await Vehicle.findById(booking.vehicle);
