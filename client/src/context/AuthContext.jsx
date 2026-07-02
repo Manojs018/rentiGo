@@ -52,6 +52,23 @@ export function AuthProvider({ children }) {
     }
   }, [state.token, state.user]);
 
+  // Refresh user profile details on load to sync ecoPoints/stats
+  useEffect(() => {
+    const syncUser = async () => {
+      if (state.token) {
+        try {
+          const { data } = await authAPI.getMe();
+          dispatch({ type: 'LOGIN_SUCCESS', payload: { user: data.user, token: state.token } });
+        } catch (err) {
+          if (err.response?.status === 401) {
+            dispatch({ type: 'LOGOUT' });
+          }
+        }
+      }
+    };
+    syncUser();
+  }, []);
+
   const login = async (credentials) => {
     dispatch({ type: 'LOGIN_START' });
     try {
