@@ -53,6 +53,18 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vehicle',
   }],
+  ecoPoints: {
+    type: Number,
+    default: 0,
+  },
+  co2Offset: {
+    type: Number,
+    default: 0,
+  },
+  treesPlanted: {
+    type: Number,
+    default: 0,
+  },
 }, { timestamps: true });
 
 // Hash password before saving
