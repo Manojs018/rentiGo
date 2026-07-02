@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home } from 'lucide-react';
+import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home, Leaf, Trophy, Award, Trees, Sparkles, Gift, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { bookingAPI, authAPI, notificationAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -14,9 +14,143 @@ const statusColors = {
   cancelled: 'text-red-400 bg-red-400/10 border-red-400/20',
 };
 
+const getTierDetails = (points = 0) => {
+  if (points >= 3000) return { name: 'Platinum Earth-Guardian', discount: 15, currentMin: 3000, nextMin: null, color: 'from-blue-500 to-indigo-600', text: 'text-indigo-400' };
+  if (points >= 1500) return { name: 'Gold Eco-Hero', discount: 10, currentMin: 1500, nextMin: 3000, color: 'from-amber-500 to-orange-600', text: 'text-orange-400' };
+  if (points >= 500) return { name: 'Silver Eco-Explorer', discount: 5, currentMin: 500, nextMin: 1500, color: 'from-slate-400 to-slate-500', text: 'text-slate-400' };
+  return { name: 'Bronze Rider', discount: 0, currentMin: 0, nextMin: 500, color: 'from-orange-800 to-amber-900', text: 'text-amber-700' };
+};
+
+function EcoCalculatorWidget() {
+  const [distance, setDistance] = useState(250);
+  const [vehicleFactor, setVehicleFactor] = useState(1.0); // Car
+  const [fuelType, setFuelType] = useState('electric');
+
+  const getMultiplier = () => {
+    switch (fuelType) {
+      case 'electric': return 3.0;
+      case 'cng': return 2.0;
+      case 'hybrid': return 1.5;
+      case 'petrol': return 0.5;
+      case 'diesel': return 0.1;
+      default: return 0.5;
+    }
+  };
+
+  const getCo2Offset = () => {
+    switch (fuelType) {
+      case 'electric': return 150;
+      case 'cng': return 70;
+      case 'hybrid': return 60;
+      default: return 0;
+    }
+  };
+
+  const points = Math.round(distance * getMultiplier() * vehicleFactor);
+  const co2Saved = Math.round((distance * getCo2Offset() * vehicleFactor) / 10) / 100; // in kg
+  const treesPlanted = Math.round((co2Saved / 20) * 100) / 100;
+
+  return (
+    <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] flex flex-col justify-between h-full text-left">
+      <div>
+        <h3 className="text-white font-bold flex items-center gap-2 mb-4 pb-4 border-b border-white/5">
+          <Sparkles size={18} className="text-amber-400" /> Trip Impact Simulator
+        </h3>
+        <p className="text-[11px] text-slate-400 mb-6 leading-relaxed">
+          Simulate a rental trip and see how choosing a cleaner fuel type boosts your points and offsets emissions!
+        </p>
+
+        <div className="space-y-5">
+          {/* Distance Slider */}
+          <div>
+            <div className="flex justify-between text-xs text-slate-400 mb-2">
+              <span>Estimated Trip Distance</span>
+              <span className="text-orange-400 font-bold">{distance} km</span>
+            </div>
+            <input 
+              type="range" 
+              min="10" 
+              max="2000" 
+              step="10" 
+              value={distance} 
+              onChange={(e) => setDistance(parseInt(e.target.value))}
+              className="w-full accent-orange-500 bg-white/5 rounded-lg appearance-none h-1.5 cursor-pointer"
+            />
+          </div>
+
+          {/* Vehicle Type selector */}
+          <div>
+            <label className="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-2 block">Vehicle Type</label>
+            <div className="grid grid-cols-4 gap-2 text-center text-[11px]">
+              {[
+                { label: 'Scooter', val: 0.4, emoji: '🛵' },
+                { label: 'Bike', val: 0.6, emoji: '🏍️' },
+                { label: 'Car', val: 1.0, emoji: '🚗' },
+                { label: 'SUV', val: 1.3, emoji: '🚙' }
+              ].map((v) => (
+                <button
+                  key={v.label}
+                  onClick={() => setVehicleFactor(v.val)}
+                  className={`py-2 rounded-xl font-medium transition-all ${
+                    vehicleFactor === v.val ? 'bg-orange-500/15 border border-orange-500/35 text-orange-400 font-bold' : 'bg-white/5 border border-white/5 text-slate-400 hover:bg-white/[0.02]'
+                  }`}
+                >
+                  <div className="text-base mb-0.5">{v.emoji}</div>
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Fuel Type selection */}
+          <div>
+            <label className="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-2 block">Fuel Type</label>
+            <div className="grid grid-cols-5 gap-1.5 text-center text-[10px]">
+              {[
+                { label: 'Electric', val: 'electric' },
+                { label: 'CNG', val: 'cng' },
+                { label: 'Hybrid', val: 'hybrid' },
+                { label: 'Petrol', val: 'petrol' },
+                { label: 'Diesel', val: 'diesel' }
+              ].map((f) => (
+                <button
+                  key={f.label}
+                  onClick={() => setFuelType(f.val)}
+                  className={`py-2 rounded-xl font-bold uppercase transition-all ${
+                    fuelType === f.val ? 'bg-green-500/15 border border-green-500/35 text-green-400' : 'bg-white/5 border border-white/5 text-slate-400 hover:bg-white/[0.02]'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Simulator Results */}
+      <div className="mt-6 pt-5 border-t border-white/5 grid grid-cols-3 gap-2 bg-white/[0.01] p-3.5 rounded-xl border border-white/[0.03]">
+        <div className="text-center">
+          <span className="text-[9px] uppercase text-slate-500 block">Saved CO₂</span>
+          <span className="text-xs font-black text-green-400 mt-1 block">{co2Saved} kg</span>
+        </div>
+        <div className="text-center border-x border-white/5">
+          <span className="text-[9px] uppercase text-slate-500 block">Eco Points</span>
+          <span className="text-xs font-black text-orange-400 mt-1 block">+{points}</span>
+        </div>
+        <div className="text-center">
+          <span className="text-[9px] uppercase text-slate-500 block">Trees Growth</span>
+          <span className="text-xs font-black text-emerald-400 mt-1 block">+{treesPlanted}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const navItems = [
   { id: 'overview', label: 'Overview', icon: Home },
   { id: 'bookings', label: 'My Bookings', icon: Calendar },
+  { id: 'rewards', label: 'Eco Rewards', icon: Leaf },
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -198,10 +332,39 @@ export default function CustomerDashboard() {
           {activeTab === 'overview' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
               {/* Welcome */}
-              <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07]">
-                <h2 className="text-xl font-bold text-white mb-1">Welcome back, {user?.name?.split(' ')[0]}! 👋</h2>
-                <p className="text-slate-400 text-sm">Ready for your next ride?</p>
+              <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-1">Welcome back, {user?.name?.split(' ')[0]}! 👋</h2>
+                  <p className="text-slate-400 text-sm">Ready for your next ride?</p>
+                </div>
+                {user?.ecoPoints > 0 && (
+                  <div className="flex items-center gap-2.5 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl">
+                    <Leaf size={16} className="text-green-400 animate-pulse" />
+                    <span className="text-xs text-green-400 font-bold uppercase tracking-wider">
+                      {user.ecoPoints} Eco Points Active
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Green Footprint Banner */}
+              {user?.ecoPoints > 0 && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                  className="glass border-green-500/20 bg-gradient-to-r from-green-950/20 to-emerald-950/10 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 shadow-glow-sm shrink-0">
+                      <Trees size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-base">Your Green Footprint is Growing! 🍃</h3>
+                      <p className="text-slate-400 text-sm mt-1">You've saved <span className="text-green-400 font-bold">{user.co2Offset || 0} kg</span> of CO₂ emissions and grown <span className="text-green-400 font-bold">{user.treesPlanted || 0} equivalent trees</span>.</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setActiveTab('rewards')} className="btn-primary bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-green-500/20 text-xs py-2.5 px-5 flex items-center gap-2 shrink-0">
+                    Open Eco Dashboard <ArrowRight size={14} />
+                  </button>
+                </motion.div>
+              )}
 
               {/* Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -240,6 +403,180 @@ export default function CustomerDashboard() {
               </div>
             </motion.div>
           )}
+
+          {/* Eco Rewards Tab */}
+          {activeTab === 'rewards' && (() => {
+            const tier = getTierDetails(user?.ecoPoints || 0);
+            const progressPercent = tier.nextMin 
+              ? Math.min(100, Math.max(0, ((user?.ecoPoints || 0) - tier.currentMin) / (tier.nextMin - tier.currentMin) * 100))
+              : 100;
+            return (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                {/* Header */}
+                <div className="glass card-glow rounded-2xl p-6 border-white/[0.07] bg-gradient-to-r from-green-950/20 to-emerald-950/10 text-left">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                        <Leaf className="text-green-400 animate-bounce" size={24} /> Green Impact & <span className="gradient-text">Rewards</span>
+                      </h2>
+                      <p className="text-slate-400 text-sm mt-1">Unlock benefits and discounts by choosing eco-friendly electric, CNG, or hybrid rides.</p>
+                    </div>
+                    <div className="px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl shrink-0 text-left">
+                      <span className="text-[10px] text-slate-450 uppercase font-bold tracking-wider block">Current Tier</span>
+                      <span className="text-green-400 font-extrabold text-sm capitalize">{tier.name}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+                  {[
+                    { label: 'Eco Points', value: user?.ecoPoints || 0, icon: Trophy, color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20' },
+                    { label: 'CO₂ Saved', value: `${user?.co2Offset || 0} kg`, icon: Leaf, color: 'text-green-400', bg: 'bg-green-400/10 border-green-400/20' },
+                    { label: 'Equivalent Trees', value: user?.treesPlanted || 0, icon: Trees, color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20' },
+                    { label: 'Active Discount', value: `${tier.discount}% Off`, icon: Gift, color: 'text-indigo-400', bg: 'bg-indigo-400/10 border-indigo-400/20' }
+                  ].map((stat, i) => (
+                    <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                      className="glass rounded-2xl p-5 border border-white/[0.07] flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bg} shrink-0`}>
+                        <stat.icon size={20} className={stat.color} />
+                      </div>
+                      <div>
+                        <div className="text-2xl font-black text-white">{stat.value}</div>
+                        <div className="text-slate-400 text-xs mt-0.5">{stat.label}</div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Milestones Progress Card */}
+                <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] space-y-6 text-left">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-white font-bold flex items-center gap-2"><Award size={18} className="text-orange-500" /> Milestone Progress</h3>
+                    <span className="text-xs text-slate-400">{user?.ecoPoints || 0} total points</span>
+                  </div>
+
+                  <div>
+                    <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 p-[2px]">
+                      <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${progressPercent}%` }} 
+                        transition={{ duration: 1, ease: 'easeOut' }}
+                        className={`h-full rounded-full bg-gradient-to-r ${tier.color}`}
+                      />
+                    </div>
+                    
+                    {tier.nextMin ? (
+                      <div className="flex justify-between items-center text-xs mt-3">
+                        <span className="text-slate-400">Current: <strong className="text-white">{tier.name}</strong></span>
+                        <span className="text-orange-400 font-bold">
+                          {tier.nextMin - (user?.ecoPoints || 0)} pts to next tier ({tier.nextMin} pts)
+                        </span>
+                        <span className="text-slate-450">Discount: <strong className="text-white">{tier.discount}% → Next: {tier.discount + 5}%</strong></span>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-green-400 font-bold mt-3 text-center">
+                        🏆 Maximum level unlocked! You are a Platinum Earth-Guardian!
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Garden Grid and Calculator Column */}
+                <div className="grid lg:grid-cols-2 gap-6 text-left">
+                  {/* Forest Tree Counter */}
+                  <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+                        <h3 className="text-white font-bold flex items-center gap-2"><Trees size={18} className="text-emerald-400" /> RentiGo Virtual Forest</h3>
+                        <span className="text-xs px-2.5 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 rounded-full font-bold">
+                          {user?.treesPlanted || 0} Trees Grown
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+                        For every 20 kg of carbon emissions saved compared to petrol, we grow another tree in your virtual garden. Let's see your forest!
+                      </p>
+
+                      {/* Virtual Garden Field */}
+                      <div className="p-5 bg-gradient-to-b from-green-950/20 to-emerald-950/20 rounded-2xl border border-emerald-500/10 min-h-[220px] flex items-center justify-center">
+                        {(user?.treesPlanted || 0) > 0 ? (
+                          <div className="grid grid-cols-5 gap-6 justify-center w-full">
+                            {Array.from({ length: Math.floor(user?.treesPlanted || 0) }).map((_, i) => (
+                              <motion.div 
+                                key={`full-${i}`}
+                                whileHover={{ scale: 1.25, rotate: [0, -7, 7, 0] }}
+                                className="text-4xl text-center cursor-pointer select-none filter drop-shadow-md"
+                                title={`Grown tree #${i+1}`}
+                              >
+                                🌲
+                              </motion.div>
+                            ))}
+                            {(user?.treesPlanted || 0) % 1 >= 0.1 && (
+                              <motion.div 
+                                whileHover={{ scale: 1.25, rotate: [0, -7, 7, 0] }}
+                                className="text-3xl text-center cursor-pointer select-none"
+                                title="Sapling growing!"
+                              >
+                                🌱
+                              </motion.div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-6">
+                            <div className="text-4xl mb-3">🍂</div>
+                            <p className="text-sm text-slate-500 font-medium">Your garden is empty</p>
+                            <p className="text-xs text-slate-500 mt-1">Book an Electric, CNG, or Hybrid vehicle to plant your first tree!</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-slate-500 mt-4 text-center">
+                      🌿 Grow a real forest! A percentage of RentiGo profits are donated to reforestation projects.
+                    </div>
+                  </div>
+
+                  {/* Eco Impact Calculator */}
+                  <EcoCalculatorWidget />
+                </div>
+
+                {/* Loyalty Benefits Table */}
+                <div className="glass rounded-2xl p-6 border border-white/[0.07] text-left">
+                  <h3 className="text-white font-bold flex items-center gap-2 mb-6"><Trophy size={18} className="text-indigo-400" /> Tier Benefits & Loyalty System</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-slate-400">
+                      <thead className="text-xs uppercase text-slate-500 border-b border-white/5">
+                        <tr>
+                          <th className="py-3 px-4">Tier</th>
+                          <th className="py-3 px-4">Points Required</th>
+                          <th className="py-3 px-4">Discount Applied</th>
+                          <th className="py-3 px-4">Additional Perks</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {[
+                          { name: 'Bronze Rider', req: '0 - 499', discount: '0%', perks: 'Standard access, daily deals', active: (user?.ecoPoints || 0) < 500 },
+                          { name: 'Silver Eco-Explorer', req: '500 - 1,499', discount: '5%', perks: '5% off all cars, eco badges', active: (user?.ecoPoints || 0) >= 500 && (user?.ecoPoints || 0) < 1500 },
+                          { name: 'Gold Eco-Hero', req: '1,500 - 2,999', discount: '10%', perks: '10% off all cars, free roadside assistance', active: (user?.ecoPoints || 0) >= 1500 && (user?.ecoPoints || 0) < 3000 },
+                          { name: 'Platinum Earth-Guardian', req: '3,000+', discount: '15%', perks: '15% off all bookings, priority support & car swaps', active: (user?.ecoPoints || 0) >= 3000 }
+                        ].map((t) => (
+                          <tr key={t.name} className={`hover:bg-white/[0.02] transition-colors ${t.active ? 'bg-green-500/5 text-green-300 font-semibold' : ''}`}>
+                            <td className="py-3.5 px-4 flex items-center gap-2">
+                              {t.active && <Sparkles size={14} className="text-green-400 shrink-0" />}
+                              {t.name}
+                            </td>
+                            <td className="py-3.5 px-4">{t.req}</td>
+                            <td className="py-3.5 px-4 text-white font-bold">{t.discount}</td>
+                            <td className="py-3.5 px-4 text-xs">{t.perks}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
 
           {/* Bookings Tab */}
           {activeTab === 'bookings' && (
