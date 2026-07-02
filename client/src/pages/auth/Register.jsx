@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Car, User, Mail, Lock, Phone, MapPin, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +11,15 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const roleParam = params.get('role');
+    if (roleParam && ['customer', 'owner'].includes(roleParam)) {
+      setForm(prev => ({ ...prev, role: roleParam }));
+    }
+  }, [location.search]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
