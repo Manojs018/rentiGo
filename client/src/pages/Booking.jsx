@@ -19,13 +19,23 @@ import {
   CheckCircle,
   ArrowLeft,
   User,
-  Phone
+  Phone,
+  Leaf
 } from 'lucide-react';
 
 export default function Booking() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+
+  const getDiscountPercent = (points) => {
+    if (points >= 3000) return 15;
+    if (points >= 1500) return 10;
+    if (points >= 500) return 5;
+    return 0;
+  };
+
+  const discountPercent = user ? getDiscountPercent(user.ecoPoints || 0) : 0;
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -141,12 +151,43 @@ export default function Booking() {
     }
   };
 
-  const calculateTotal = () => {
-    if (!selectedVehicle || !form.pickupDate || !form.returnDate) return 0;
+  const calculateDurationDays = () => {
+    if (!form.pickupDate || !form.returnDate) return 1;
     const start = new Date(form.pickupDate);
     const end = new Date(form.returnDate);
-    const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+    return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+  };
+
+  const calculateBase = () => {
+    if (!selectedVehicle) return 0;
+    const days = calculateDurationDays();
     return days * selectedVehicle.dailyPrice;
+  };
+
+  const calculateTotal = () => {
+    const base = calculateBase();
+    const discount = Math.round(base * (discountPercent / 100));
+    const net = base - discount;
+    const tax = Math.round(net * 0.18);
+    return net + tax;
+  };
+
+  const getEcoMultiplier = (fuelType) => {
+    switch (fuelType) {
+      case 'electric': return 3.0;
+      case 'cng': return 2.0;
+      case 'hybrid': return 1.5;
+      default: return 0.5;
+    }
+  };
+
+  const getCo2SavedPerKm = (fuelType) => {
+    switch (fuelType) {
+      case 'electric': return 150;
+      case 'cng': return 70;
+      case 'hybrid': return 60;
+      default: return 0;
+    }
   };
 
   return (
@@ -328,21 +369,58 @@ export default function Booking() {
                         <div>
                           <h4 className="text-white font-bold">{selectedVehicle?.brand} {selectedVehicle?.model}</h4>
                           <p className="text-slate-500 text-xs uppercase font-bold tracking-widest">{selectedVehicle?.type}</p>
+                          {selectedVehicle?.fuelType && (
+                            <span className="inline-block bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mt-1.5 text-slate-300">
+                              🍃 {selectedVehicle.fuelType}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="space-y-4 mb-8">
+                      <div className="space-y-4 mb-6">
                         <div className="flex justify-between text-sm">
                           <span className="text-slate-500">Pickup Location</span>
                           <span className="text-white font-bold">{form.city}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-500">Rate</span>
-                          <span className="text-white font-bold">₹{selectedVehicle?.dailyPrice}/day</span>
+                          <span className="text-slate-500">Base Fare</span>
+                          <span className="text-white font-bold">₹{calculateBase().toLocaleString()}</span>
+                        </div>
+                        {discountPercent > 0 && (
+                          <div className="flex justify-between text-sm text-green-400">
+                            <span>Loyalty Discount ({discountPercent}%)</span>
+                            <span className="font-bold">-₹{Math.round(calculateBase() * (discountPercent / 100)).toLocaleString()}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">GST (18%)</span>
+                          <span className="text-white font-bold">₹{Math.round((calculateBase() - Math.round(calculateBase() * (discountPercent / 100))) * 0.18).toLocaleString()}</span>
                         </div>
                       </div>
+
+                      {/* Eco Friendly Badging and Calculator Preview */}
+                      {selectedVehicle && ['electric', 'cng', 'hybrid'].includes(selectedVehicle.fuelType) && (
+                        <div className="p-4 bg-green-500/10 rounded-2xl border border-green-500/20 mb-6 flex gap-3 text-left">
+                          <Leaf className="text-green-400 shrink-0 mt-0.5 animate-pulse" size={16} />
+                          <div>
+                            <p className="text-green-400 text-xs font-bold uppercase tracking-wider">Green Choice Reward</p>
+                            <p className="text-slate-300 text-[11px] mt-1 leading-normal">
+                              This ride saves approx.{' '}
+                              <span className="text-green-400 font-bold">
+                                {Math.round((calculateDurationDays() * 120 * getCo2SavedPerKm(selectedVehicle.fuelType)) / 10) / 100} kg
+                              </span>{' '}
+                              CO₂ and earns{' '}
+                              <span className="text-green-400 font-bold">
+                                {Math.round(calculateDurationDays() * 120 * getEcoMultiplier(selectedVehicle.fuelType))}
+                              </span>{' '}
+                              Eco Points!
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 text-center">
                         <p className="text-slate-400 text-xs uppercase font-bold mb-1">Estimated Total</p>
-                        <p className="text-orange-500 font-black text-3xl">₹{calculateTotal()}</p>
+                        <p className="text-orange-500 font-black text-3xl">₹{calculateTotal().toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
@@ -407,16 +485,33 @@ export default function Booking() {
                     </div>
 
                     <div className="glass card-glow rounded-3xl p-8 border-orange-500/20 bg-orange-500/5">
+                      <div className="space-y-4 mb-6 pb-6 border-b border-white/5 text-sm text-left">
+                        <div className="flex justify-between">
+                          <span className="text-slate-450">Rental Fare</span>
+                          <span className="text-white font-bold">₹{calculateBase().toLocaleString()}</span>
+                        </div>
+                        {discountPercent > 0 && (
+                          <div className="flex justify-between text-green-400">
+                            <span>Loyalty Discount ({discountPercent}%)</span>
+                            <span className="font-bold">-₹{Math.round(calculateBase() * (discountPercent / 100)).toLocaleString()}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-slate-450">GST (18%)</span>
+                          <span className="text-white font-bold">₹{Math.round((calculateBase() - Math.round(calculateBase() * (discountPercent / 100))) * 0.18).toLocaleString()}</span>
+                        </div>
+                      </div>
+
                       <div className="flex items-center justify-between mb-8">
                         <div>
                           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Grand Total</p>
-                          <p className="text-3xl font-black text-white">₹{calculateTotal()}</p>
+                          <p className="text-3xl font-black text-white">₹{calculateTotal().toLocaleString()}</p>
                         </div>
                         <div className="text-right">
                           <div className="flex items-center gap-1 text-green-400 text-[10px] font-bold uppercase mb-1">
                             <ShieldCheck size={12} /> Secure Booking
                           </div>
-                          <p className="text-slate-500 text-xs">Inclusive of taxes</p>
+                          <p className="text-slate-500 text-xs">Inclusive of taxes & discounts</p>
                         </div>
                       </div>
                       <button
