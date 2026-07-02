@@ -36,7 +36,7 @@ export default function PartnerSection() {
             <Link to="/contact" className="btn-primary text-base px-8 py-3.5">
               <List size={18} /> List Now <ArrowRight size={16} />
             </Link>
-            <Link to="/contact" className="btn-ghost text-base px-8 py-3.5">
+            <Link to="/earnings-simulator" className="btn-ghost text-base px-8 py-3.5">
               <TrendingUp size={18} /> Earnings Simulator
             </Link>
           </motion.div>
