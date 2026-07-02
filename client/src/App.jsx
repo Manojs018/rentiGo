@@ -23,6 +23,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 import CustomerDashboard from './pages/dashboard/CustomerDashboard';
 import OwnerDashboard from './pages/dashboard/OwnerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
+import EarningsSimulator from './pages/EarningsSimulator';
 
 // Protected route wrapper
 function ProtectedRoute({ children, roles }) {
@@ -43,6 +44,7 @@ function AppRoutes() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/booking" element={<Booking />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/earnings-simulator" element={<EarningsSimulator />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
