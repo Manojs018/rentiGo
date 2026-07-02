@@ -87,6 +87,9 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
+    const { updateUserEcoStats } = require('../utils/ecoHelper');
+    await updateUserEcoStats(req.user.id);
+
     const user = await User.findById(req.user.id).populate('favoriteVehicles');
     res.json({ success: true, user });
   } catch (error) {
