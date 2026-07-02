@@ -22,7 +22,7 @@ const Twitter = ({ size = 24, className = '' }) => (
   ],
   partner: [
     { label: '📢 List Your Business', path: '/contact' },
-    { label: '💰 Earnings Simulator', path: '/contact' },
+    { label: '💰 Earnings Simulator', path: '/earnings-simulator' },
     { label: '📞 Business Contact', path: '/contact' },
   ],
 };
