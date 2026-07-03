@@ -11,6 +11,7 @@ import ParticlesBackground from './components/ui/ParticlesBackground';
 // ... (rest of imports unchanged)
 import Home from './pages/Home';
 import Rentals from './pages/Rentals';
+import Recommend from './pages/Recommend';
 import Cities from './pages/Cities';
 import Pricing from './pages/Pricing';
 import About from './pages/About';
@@ -38,6 +39,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/rentals" element={<Rentals />} />
+      <Route path="/recommend" element={<Recommend />} />
       <Route path="/cities" element={<Cities />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/about" element={<About />} />
