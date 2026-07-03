@@ -5,6 +5,7 @@ import StatsSection from '../components/sections/StatsSection';
 import FleetSection from '../components/sections/FleetSection';
 import CitiesSection from '../components/sections/CitiesSection';
 import WhyUsSection from '../components/sections/WhyUsSection';
+import SmartRideTeaser from '../components/sections/SmartRideTeaser';
 import HowItWorksSection from '../components/sections/HowItWorksSection';
 import VehiclesSection from '../components/sections/VehiclesSection';
 import PricingSection from '../components/sections/PricingSection';
@@ -22,6 +23,7 @@ export default function Home() {
         <FleetSection />
         <CitiesSection />
         <WhyUsSection />
+        <SmartRideTeaser />
         <HowItWorksSection />
         <VehiclesSection />
         <PricingSection />
