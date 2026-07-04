@@ -108,7 +108,14 @@ export default function Booking() {
   const fetchSelectedVehicle = async (id, autoAdvance = false) => {
     try {
       const { data } = await vehicleAPI.getOne(id);
-      setSelectedVehicle(data.data);
+      const vehicle = data.data;
+      if (vehicle.status === 'In Maintenance') {
+        toast.error('This vehicle is currently in maintenance and cannot be booked.');
+        setSelectedVehicle(null);
+        setStep(1);
+        return;
+      }
+      setSelectedVehicle(vehicle);
       if (autoAdvance) setStep(2);
     } catch (error) {
       console.error('Could not pre-select vehicle:', error);
@@ -125,6 +132,11 @@ export default function Booking() {
     if (!isAuthenticated) {
       toast.error('Please login to complete your booking');
       navigate('/login', { state: { from: '/booking', bookingData: form } });
+      return;
+    }
+
+    if (selectedVehicle?.status === 'In Maintenance') {
+      toast.error('This vehicle is currently in maintenance and cannot be booked.');
       return;
     }
 
@@ -253,6 +265,10 @@ export default function Booking() {
                         <div
                           key={v._id}
                           onClick={() => {
+                            if (v.status === 'In Maintenance') {
+                              toast.error('This vehicle is currently in maintenance and cannot be booked.');
+                              return;
+                            }
                             if (!isAvail) {
                               toast.error('This vehicle is currently unavailable');
                               return;
