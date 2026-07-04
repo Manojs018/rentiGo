@@ -14,6 +14,9 @@ exports.createBooking = async (req, res) => {
 
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    if (vehicle.status === 'In Maintenance') {
+      return res.status(400).json({ success: false, message: 'This vehicle is currently in maintenance and cannot be rented.' });
+    }
     if (!vehicle.isAvailable) return res.status(400).json({ success: false, message: 'Vehicle is not available' });
 
     // Calculate pricing
