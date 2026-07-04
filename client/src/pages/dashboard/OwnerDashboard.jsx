@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Plus, List, BarChart2, Wrench, Home, LogOut, CheckCircle, XCircle, Clock, Edit2, Trash2 } from 'lucide-react';
+import { Car, Plus, List, BarChart2, Wrench, Home, LogOut, CheckCircle, XCircle, Clock, Edit2, Trash2, Battery, AlertTriangle, Activity } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { vehicleAPI, bookingAPI } from '../../services/api';
@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 const navItems = [
   { id: 'overview', label: 'Overview', icon: Home },
   { id: 'fleet', label: 'My Fleet', icon: Car },
+  { id: 'diagnostics', label: 'Diagnostics & Health', icon: Wrench },
   { id: 'add', label: 'Add Vehicle', icon: Plus },
   { id: 'bookings', label: 'Bookings', icon: List },
   { id: 'revenue', label: 'Revenue', icon: BarChart2 },
@@ -29,6 +30,12 @@ export default function OwnerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [removingVehicle, setRemovingVehicle] = useState(null);
+
+  // Diagnostics Tab States
+  const [selectedDiagVehicleId, setSelectedDiagVehicleId] = useState(null);
+  const [diagForm, setDiagForm] = useState({ tirePressure: 32, batteryCharge: 100, fuelLevel: 100, nextService: '' });
+  const [newLog, setNewLog] = useState({ serviceType: 'Oil Change', date: new Date().toISOString().split('T')[0], notes: '' });
+  const [diagSaving, setDiagSaving] = useState(false);
   const socket = useSocket();
 
   useEffect(() => { fetchData(); }, []);
@@ -71,18 +78,133 @@ export default function OwnerDashboard() {
   const fetchData = async () => {
     try {
       const [vRes, bRes] = await Promise.all([vehicleAPI.getMy(), bookingAPI.getOwner()]);
-      setVehicles(vRes.data.data || []);
+      const myVehicles = vRes.data.data || [];
+      setVehicles(myVehicles);
       setBookings(bRes.data.data || []);
+      if (myVehicles.length > 0 && !selectedDiagVehicleId) {
+        setSelectedDiagVehicleId(myVehicles[0]._id);
+      }
     } catch {
       // Demo data
-      setVehicles([
-        { _id: '1', brand: 'Honda', model: 'Sedan', type: 'car', status: 'approved', isAvailable: true, dailyPrice: 2500, city: 'ahmedabad', totalBookings: 12, emoji: '🚗' },
-        { _id: '2', brand: 'Honda', model: 'Activa 6G', type: 'activa', status: 'pending', isAvailable: false, dailyPrice: 450, city: 'surat', totalBookings: 5, emoji: '🛵' },
-      ]);
+      const demoVehicles = [
+        { _id: '1', brand: 'Honda', model: 'City', type: 'car', status: 'approved', isAvailable: true, dailyPrice: 2500, city: 'ahmedabad', totalBookings: 12, emoji: '🚗', tirePressure: 32, batteryCharge: 95, fuelLevel: 80, nextService: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), serviceLogs: [{ serviceType: 'Oil Change', date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), notes: 'Replaced engine oil and filter.' }] },
+        { _id: '2', brand: 'Honda', model: 'Activa 6G', type: 'activa', status: 'pending', isAvailable: false, dailyPrice: 450, city: 'surat', totalBookings: 5, emoji: '🛵', tirePressure: 30, batteryCharge: 92, fuelLevel: 70, nextService: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), serviceLogs: [{ serviceType: 'General Maintenance', date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), notes: 'Chain lubricated.' }] },
+      ];
+      setVehicles(demoVehicles);
       setBookings([
         { _id: '1', customer: { name: 'Arjun Patel', phone: '+91 9876543210' }, vehicle: { brand: 'Honda', model: 'Sedan', emoji: '🚗' }, status: 'confirmed', pickupDate: '2026-05-15', totalAmount: 4200 },
         { _id: '2', customer: { name: 'Priya Sharma', phone: '+91 8765432109' }, vehicle: { brand: 'Honda', model: 'Activa', emoji: '🛵' }, status: 'pending', pickupDate: '2026-05-18', totalAmount: 900 },
       ]);
+      if (demoVehicles.length > 0 && !selectedDiagVehicleId) {
+        setSelectedDiagVehicleId(demoVehicles[0]._id);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedDiagVehicleId) return;
+    const selectedVehicle = vehicles.find(v => v._id === selectedDiagVehicleId);
+    if (selectedVehicle) {
+      setDiagForm({
+        tirePressure: selectedVehicle.tirePressure ?? 32,
+        batteryCharge: selectedVehicle.batteryCharge ?? 100,
+        fuelLevel: selectedVehicle.fuelLevel ?? 100,
+        nextService: selectedVehicle.nextService ? new Date(selectedVehicle.nextService).toISOString().split('T')[0] : ''
+      });
+    }
+  }, [selectedDiagVehicleId, vehicles]);
+
+  const handleToggleMaintenance = async (vehicleId, currentStatus) => {
+    const isMaintenance = currentStatus === 'In Maintenance';
+    const newStatus = isMaintenance ? 'approved' : 'In Maintenance';
+    const isAvailable = isMaintenance ? true : false;
+    setLoading(true);
+    try {
+      await vehicleAPI.update(vehicleId, { status: newStatus, isAvailable });
+      toast.success(isMaintenance ? 'Vehicle marked as approved and ready for rental! 🟢' : 'Vehicle marked as In Maintenance. It is now hidden from rentals. 🔧');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to update maintenance status.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveDiagnostics = async (e) => {
+    e.preventDefault();
+    if (!selectedDiagVehicleId) return;
+    setDiagSaving(true);
+    try {
+      await vehicleAPI.update(selectedDiagVehicleId, {
+        tirePressure: Number(diagForm.tirePressure),
+        batteryCharge: Number(diagForm.batteryCharge),
+        fuelLevel: Number(diagForm.fuelLevel),
+        nextService: diagForm.nextService || null
+      });
+      toast.success('Diagnostics updated successfully! 🛠️');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to update diagnostics.');
+    } finally {
+      setDiagSaving(false);
+    }
+  };
+
+  const handleAddServiceLog = async (e) => {
+    e.preventDefault();
+    if (!selectedDiagVehicleId) return;
+    const selectedVehicle = vehicles.find(v => v._id === selectedDiagVehicleId);
+    if (!selectedVehicle) return;
+
+    const updatedLogs = [
+      ...(selectedVehicle.serviceLogs || []),
+      { serviceType: newLog.serviceType, date: new Date(newLog.date), notes: newLog.notes }
+    ];
+
+    setLoading(true);
+    try {
+      await vehicleAPI.update(selectedDiagVehicleId, {
+        serviceLogs: updatedLogs,
+        lastService: new Date(newLog.date)
+      });
+      toast.success('Service log added successfully! 📋');
+      setNewLog(prev => ({ ...prev, notes: '' }));
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to add service log.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getServiceCountdown = (nextServiceDate) => {
+    if (!nextServiceDate) return { text: 'No service scheduled', color: 'text-slate-400 border-white/10 bg-white/5' };
+    const next = new Date(nextServiceDate);
+    const today = new Date();
+    next.setHours(0,0,0,0);
+    today.setHours(0,0,0,0);
+    const diffTime = next.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 0) {
+      return {
+        days: diffDays,
+        text: `${diffDays} Day${diffDays > 1 ? 's' : ''} Remaining`,
+        color: 'text-green-400 bg-green-400/10 border-green-500/20'
+      };
+    } else if (diffDays === 0) {
+      return {
+        days: 0,
+        text: `Scheduled for Today!`,
+        color: 'text-yellow-400 bg-yellow-400/10 border-yellow-500/20 animate-pulse'
+      };
+    } else {
+      const overdue = Math.abs(diffDays);
+      return {
+        days: diffDays,
+        text: `OVERDUE by ${overdue} Day${overdue > 1 ? 's' : ''}!`,
+        color: 'text-red-400 bg-red-400/10 border-red-500/20 animate-pulse border-red-500/40'
+      };
     }
   };
 
@@ -319,6 +441,326 @@ export default function OwnerDashboard() {
                 className="glass rounded-2xl border-2 border-dashed border-white/10 hover:border-orange-500/30 p-10 flex flex-col items-center justify-center gap-3 text-slate-500 hover:text-orange-400 transition-all">
                 <Plus size={28} /><span className="text-sm font-medium">Add New Vehicle</span>
               </motion.button>
+            </motion.div>
+          )}
+
+          {/* Diagnostics & Health */}
+          {activeTab === 'diagnostics' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              {vehicles.length === 0 ? (
+                <div className="glass rounded-2xl p-10 text-center border border-white/[0.07]">
+                  <Wrench className="mx-auto text-slate-500 mb-4 animate-bounce" size={40} />
+                  <h3 className="text-white font-bold text-lg mb-2">No Vehicles in Fleet</h3>
+                  <p className="text-slate-400 text-sm mb-6">Please add a vehicle to view diagnostics and health trackers.</p>
+                  <button onClick={() => setActiveTab('add')} className="btn-primary py-2 px-4 text-sm mx-auto">Add Vehicle</button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                  
+                  {/* Left Column - Fleet List */}
+                  <div className="glass card-glow rounded-2xl border border-white/[0.07] overflow-hidden lg:col-span-1">
+                    <div className="p-5 border-b border-white/[0.06]">
+                      <h3 className="text-white font-bold">Select Vehicle</h3>
+                    </div>
+                    <div className="divide-y divide-white/[0.04] max-h-[600px] overflow-y-auto">
+                      {vehicles.map(v => {
+                        const isSelected = v._id === selectedDiagVehicleId;
+                        return (
+                          <div key={v._id} 
+                            onClick={() => setSelectedDiagVehicleId(v._id)}
+                            className={`p-4 flex items-center gap-3.5 cursor-pointer transition-all ${
+                              isSelected ? 'bg-orange-500/10 border-l-4 border-orange-500' : 'hover:bg-white/5 border-l-4 border-transparent'
+                            }`}
+                          >
+                            <span className="text-3xl">{v.emoji || '🚗'}</span>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-white text-sm font-semibold truncate">{v.brand} {v.model}</h4>
+                              <p className="text-slate-500 text-xs truncate uppercase tracking-wider">{v.vehicleNumber}</p>
+                            </div>
+                            <span className={`w-2.5 h-2.5 rounded-full ${
+                              v.status === 'In Maintenance' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]' :
+                              v.status === 'approved' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.7)]' : 'bg-yellow-500'
+                            }`} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Columns - Vehicle Diagnostics */}
+                  {selectedDiagVehicleId && (
+                    (() => {
+                      const selectedVehicle = vehicles.find(v => v._id === selectedDiagVehicleId);
+                      if (!selectedVehicle) return null;
+                      
+                      const countdown = getServiceCountdown(selectedVehicle.nextService);
+                      
+                      return (
+                        <div className="lg:col-span-2 space-y-6">
+                          
+                          {/* Selected Vehicle Info & Status Toggle */}
+                          <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-4xl">{selectedVehicle.emoji || '🚗'}</span>
+                                <div>
+                                  <h2 className="text-xl font-bold text-white">{selectedVehicle.brand} {selectedVehicle.model}</h2>
+                                  <p className="text-slate-400 text-xs uppercase tracking-wider">{selectedVehicle.vehicleNumber}</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                              <div className="flex-1 flex flex-col justify-center px-4 py-2 bg-white/5 rounded-xl border border-white/5">
+                                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Listing Status</span>
+                                <span className={`text-sm font-bold capitalize ${
+                                  selectedVehicle.status === 'In Maintenance' ? 'text-red-400' :
+                                  selectedVehicle.status === 'approved' ? 'text-green-400' : 'text-yellow-400'
+                                }`}>
+                                  {selectedVehicle.status}
+                                </span>
+                              </div>
+                              {selectedVehicle.status !== 'pending' && selectedVehicle.status !== 'rejected' && (
+                                <button
+                                  onClick={() => handleToggleMaintenance(selectedVehicle._id, selectedVehicle.status)}
+                                  className={`btn font-bold text-xs py-3 px-5 rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                                    selectedVehicle.status === 'In Maintenance'
+                                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-glow-sm border-0'
+                                      : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
+                                  }`}
+                                >
+                                  {selectedVehicle.status === 'In Maintenance' ? (
+                                    <>✅ Ready for Rent</>
+                                  ) : (
+                                    <>🔧 Put in Maintenance</>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* In Maintenance Warning Banner */}
+                          {selectedVehicle.status === 'In Maintenance' && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3"
+                            >
+                              <AlertTriangle size={18} className="text-red-400 mt-0.5 animate-pulse" />
+                              <div>
+                                <h4 className="text-red-400 font-bold text-sm">Under Maintenance</h4>
+                                <p className="text-slate-400 text-xs mt-0.5">This vehicle is currently hidden from rental searches and cannot be booked by customers.</p>
+                              </div>
+                            </motion.div>
+                          )}
+
+                          {/* 2-Column Details Grid */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            {/* Virtual Health Indicators */}
+                            <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] space-y-6">
+                              <h3 className="text-white font-bold text-base flex items-center gap-2 border-b border-white/[0.05] pb-3">
+                                <Activity size={18} className="text-orange-500" />
+                                Virtual Health Indicators
+                              </h3>
+                              <form onSubmit={handleSaveDiagnostics} className="space-y-5">
+                                
+                                {/* Tire Pressure Slider */}
+                                <div>
+                                  <div className="flex justify-between items-center mb-1.5">
+                                    <label className="text-xs text-slate-300 font-bold uppercase tracking-wider">Tire Pressure (PSI)</label>
+                                    <span className={`text-sm font-black ${
+                                      diagForm.tirePressure < 28 || diagForm.tirePressure > 36 ? 'text-yellow-400' : 'text-green-400'
+                                    }`}>
+                                      {diagForm.tirePressure} PSI
+                                    </span>
+                                  </div>
+                                  <input 
+                                    type="range" min="20" max="45" step="1" 
+                                    value={diagForm.tirePressure}
+                                    onChange={e => setDiagForm({ ...diagForm, tirePressure: Number(e.target.value) })}
+                                    className="w-full accent-orange-500 cursor-pointer bg-white/5 h-2 rounded-lg"
+                                  />
+                                  <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-medium">
+                                    <span>20 (Low)</span>
+                                    <span>{diagForm.tirePressure < 28 ? '⚠️ Under-inflated' : diagForm.tirePressure > 36 ? '⚠️ Over-inflated' : '🟢 Healthy'}</span>
+                                    <span>45 (High)</span>
+                                  </div>
+                                </div>
+
+                                {/* Battery Charge Slider */}
+                                <div>
+                                  <div className="flex justify-between items-center mb-1.5">
+                                    <label className="text-xs text-slate-300 font-bold uppercase tracking-wider">Battery Charge (%)</label>
+                                    <span className={`text-sm font-black ${
+                                      diagForm.batteryCharge < 30 ? 'text-red-400' : diagForm.batteryCharge < 70 ? 'text-yellow-400' : 'text-green-400'
+                                    }`}>
+                                      {diagForm.batteryCharge}%
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <input 
+                                      type="range" min="0" max="100" step="1" 
+                                      value={diagForm.batteryCharge}
+                                      onChange={e => setDiagForm({ ...diagForm, batteryCharge: Number(e.target.value) })}
+                                      className="flex-1 accent-orange-500 cursor-pointer bg-white/5 h-2 rounded-lg"
+                                    />
+                                    <Battery size={20} className={
+                                      diagForm.batteryCharge < 30 ? 'text-red-400 animate-pulse' : diagForm.batteryCharge < 70 ? 'text-yellow-400' : 'text-green-400'
+                                    } />
+                                  </div>
+                                </div>
+
+                                {/* Fuel / Charge Slider */}
+                                <div>
+                                  <div className="flex justify-between items-center mb-1.5">
+                                    <label className="text-xs text-slate-300 font-bold uppercase tracking-wider">
+                                      {selectedVehicle.fuelType === 'electric' ? 'Battery Level / range (%)' : 'Fuel level (%)'}
+                                    </label>
+                                    <span className={`text-sm font-black ${
+                                      diagForm.fuelLevel < 15 ? 'text-red-400' : diagForm.fuelLevel < 40 ? 'text-yellow-400' : 'text-green-400'
+                                    }`}>
+                                      {diagForm.fuelLevel}%
+                                    </span>
+                                  </div>
+                                  <input 
+                                    type="range" min="0" max="100" step="1" 
+                                    value={diagForm.fuelLevel}
+                                    onChange={e => setDiagForm({ ...diagForm, fuelLevel: Number(e.target.value) })}
+                                    className="w-full accent-orange-500 cursor-pointer bg-white/5 h-2 rounded-lg"
+                                  />
+                                  <div className="w-full bg-white/5 rounded-full h-1.5 mt-2 overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all duration-300 ${
+                                      diagForm.fuelLevel < 15 ? 'bg-red-500' : diagForm.fuelLevel < 40 ? 'bg-yellow-500' : 'bg-green-500'
+                                    }`} style={{ width: `${diagForm.fuelLevel}%` }} />
+                                  </div>
+                                </div>
+
+                                <button 
+                                  type="submit" 
+                                  disabled={diagSaving} 
+                                  className="btn-primary w-full justify-center text-xs py-3 mt-4"
+                                >
+                                  {diagSaving ? 'Saving Diagnostics...' : '💾 Save Health Diagnostics'}
+                                </button>
+                              </form>
+                            </div>
+
+                            {/* Service Tracking Logs & Next Service Countdown */}
+                            <div className="space-y-6">
+                              
+                              {/* Next Service Tracker */}
+                              <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] space-y-4">
+                                <h3 className="text-white font-bold text-base flex items-center gap-2 border-b border-white/[0.05] pb-3">
+                                  <Clock size={18} className="text-orange-500" />
+                                  Next Service Tracker
+                                </h3>
+                                
+                                <div className={`p-4 rounded-xl border font-bold text-center ${countdown.color}`}>
+                                  <p className="text-xs uppercase tracking-wider font-semibold text-slate-400">Countdown Status</p>
+                                  <p className="text-lg font-black mt-1">{countdown.text}</p>
+                                </div>
+
+                                <div className="space-y-3 pt-2">
+                                  <label className="text-xs text-slate-300 font-bold uppercase tracking-wider block">Schedule Next Service</label>
+                                  <div className="flex gap-2">
+                                    <input 
+                                      type="date" 
+                                      className="input-field py-2 text-sm"
+                                      value={diagForm.nextService}
+                                      onChange={e => setDiagForm({ ...diagForm, nextService: e.target.value })}
+                                    />
+                                    <button 
+                                      onClick={handleSaveDiagnostics} 
+                                      disabled={diagSaving}
+                                      className="px-4 bg-orange-500 text-white hover:bg-orange-600 rounded-xl text-xs font-bold transition-all"
+                                    >
+                                      Schedule
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Service History Logs Card */}
+                              <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] space-y-4">
+                                <h3 className="text-white font-bold text-base flex items-center gap-2 border-b border-white/[0.05] pb-3">
+                                  <Activity size={18} className="text-orange-500" />
+                                  Service Tracking Logs
+                                </h3>
+
+                                <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                                  {(selectedVehicle.serviceLogs || []).length === 0 ? (
+                                    <p className="text-xs text-slate-500 italic text-center py-4">No service history logs recorded.</p>
+                                  ) : (
+                                    selectedVehicle.serviceLogs.map((log, lIdx) => (
+                                      <div key={lIdx} className="p-3 bg-white/5 border border-white/5 rounded-xl space-y-1">
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-white text-xs font-bold">{log.serviceType}</span>
+                                          <span className="text-slate-500 text-[10px]">{new Date(log.date).toLocaleDateString()}</span>
+                                        </div>
+                                        {log.notes && <p className="text-slate-400 text-xs leading-relaxed">{log.notes}</p>}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+
+                                {/* Add Log Form */}
+                                <form onSubmit={handleAddServiceLog} className="pt-3 border-t border-white/[0.05] space-y-3">
+                                  <h4 className="text-white font-bold text-xs">Record New Service Log</h4>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="text-[10px] text-slate-500 uppercase tracking-wider block mb-1">Service Type</label>
+                                      <select 
+                                        value={newLog.serviceType}
+                                        onChange={e => setNewLog({ ...newLog, serviceType: e.target.value })}
+                                        className="input-field py-2 text-xs"
+                                      >
+                                        <option value="Oil Change">Oil Change</option>
+                                        <option value="Filter Replacement">Filter Replacement</option>
+                                        <option value="Brake Check">Brake Check</option>
+                                        <option value="General Maintenance">General Maintenance</option>
+                                        <option value="Battery Diagnostics">Battery Diagnostics</option>
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] text-slate-500 uppercase tracking-wider block mb-1">Date</label>
+                                      <input 
+                                        type="date"
+                                        value={newLog.date}
+                                        onChange={e => setNewLog({ ...newLog, date: e.target.value })}
+                                        className="input-field py-2 text-xs"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-slate-500 uppercase tracking-wider block mb-1">Service Notes</label>
+                                    <input 
+                                      type="text"
+                                      value={newLog.notes}
+                                      onChange={e => setNewLog({ ...newLog, notes: e.target.value })}
+                                      placeholder="e.g. replaced air filters, checked oil level..."
+                                      className="input-field py-2 text-xs"
+                                      required
+                                    />
+                                  </div>
+                                  <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/10 hover:border-orange-500/30 text-xs font-bold transition-all">
+                                    <Plus size={14} /> Add Log Entry
+                                  </button>
+                                </form>
+
+                              </div>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+                      );
+                    })()
+                  )}
+
+                </div>
+              )}
             </motion.div>
           )}
 
