@@ -67,7 +67,7 @@ const VehicleSchema = new mongoose.Schema({
   isAvailable: { type: Boolean, default: true },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
+    enum: ['pending', 'approved', 'rejected', 'In Maintenance'],
     default: 'pending',
   },
   adminNote: String,
@@ -77,9 +77,17 @@ const VehicleSchema = new mongoose.Schema({
   rating: { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
 
-  // Maintenance
+  // Maintenance & Diagnostics
   lastService: Date,
   nextService: Date,
+  tirePressure: { type: Number, default: 32 },
+  batteryCharge: { type: Number, default: 100 },
+  fuelLevel: { type: Number, default: 100 },
+  serviceLogs: [{
+    serviceType: { type: String, required: true },
+    date: { type: Date, default: Date.now },
+    notes: String,
+  }],
 }, { timestamps: true });
 
 // Text search index
