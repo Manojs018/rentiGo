@@ -76,6 +76,19 @@ const BookingSchema = new mongoose.Schema({
   // Notes
   specialRequests: String,
   adminNote: String,
+
+  // Handover Checklist Coordination
+  handoverDetails: {
+    locationShared: { type: Boolean, default: false },
+    location: {
+      lat: Number,
+      lng: Number,
+      address: String,
+    },
+    keysDelivered: { type: Boolean, default: false },
+    vehicleInspected: { type: Boolean, default: false },
+    handoverCompleted: { type: Boolean, default: false },
+  },
 }, { timestamps: true });
 
 // Auto-calculate duration in days
