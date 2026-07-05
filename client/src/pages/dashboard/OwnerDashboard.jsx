@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Plus, List, BarChart2, Wrench, Home, LogOut, CheckCircle, XCircle, Clock, Edit2, Trash2, Battery, AlertTriangle, Activity } from 'lucide-react';
+import { Car, Plus, List, BarChart2, Wrench, Home, LogOut, CheckCircle, XCircle, Clock, Edit2, Trash2, Battery, AlertTriangle, Activity, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { vehicleAPI, bookingAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import { AnimatePresence } from 'framer-motion';
+import HandoverChatCoordinator from '../../components/ui/HandoverChatCoordinator';
 
 const navItems = [
   { id: 'overview', label: 'Overview', icon: Home },
@@ -28,6 +30,7 @@ export default function OwnerDashboard() {
   const [form, setForm] = useState(emptyVehicle);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedBookingForChat, setSelectedBookingForChat] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [removingVehicle, setRemovingVehicle] = useState(null);
 
@@ -833,6 +836,17 @@ export default function OwnerDashboard() {
                       )}
                     </div>
                   </div>
+                  {['confirmed', 'active', 'completed'].includes(b.status) && (
+                    <div className="mt-4 pt-4 border-t border-white/[0.04] flex justify-end">
+                      <button 
+                        onClick={() => setSelectedBookingForChat(b)} 
+                        className="flex items-center gap-2 text-xs font-semibold bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 px-4 py-2 rounded-xl transition-all border border-orange-500/20"
+                      >
+                        <MessageSquare size={13} />
+                        Chat & Coordination
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </motion.div>
@@ -984,6 +998,21 @@ export default function OwnerDashboard() {
           )}
         </div>
       </div>
+      <AnimatePresence>
+        {selectedBookingForChat && (
+          <HandoverChatCoordinator
+            booking={selectedBookingForChat}
+            currentUser={{ id: user?._id || user?.id, role: user?.role, name: user?.name }}
+            onClose={() => setSelectedBookingForChat(null)}
+            onBookingUpdated={(updatedBooking) => {
+              setBookings((prev) => 
+                prev.map((b) => b._id === updatedBooking._id ? { ...b, ...updatedBooking } : b)
+              );
+              setSelectedBookingForChat(updatedBooking);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
