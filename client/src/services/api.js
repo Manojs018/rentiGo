@@ -87,5 +87,12 @@ export const notificationAPI = {
   markAllRead: () => api.put('/notifications/read-all'),
 };
 
+// ── Messages & Handover ───────────────────────
+export const messageAPI = {
+  getMessages: (bookingId) => api.get(`/messages/${bookingId}`),
+  sendMessage: (bookingId, data) => api.post(`/messages/${bookingId}`, data),
+  updateHandover: (bookingId, handoverDetails) => api.put(`/messages/${bookingId}/handover`, { handoverDetails }),
+};
+
 export default api;
 
