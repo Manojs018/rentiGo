@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home, Leaf, Trophy, Award, Trees, Sparkles, Gift, ArrowRight } from 'lucide-react';
+import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home, Leaf, Trophy, Award, Trees, Sparkles, Gift, ArrowRight, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { bookingAPI, authAPI, notificationAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import { AnimatePresence } from 'framer-motion';
+import HandoverChatCoordinator from '../../components/ui/HandoverChatCoordinator';
 
 const statusColors = {
   pending: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
@@ -162,6 +164,7 @@ export default function CustomerDashboard() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedBookingForChat, setSelectedBookingForChat] = useState(null);
 
   const [favorites, setFavorites] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -610,6 +613,17 @@ export default function CustomerDashboard() {
                         <p className="text-orange-400 font-black text-lg mt-2">₹{b.totalAmount?.toLocaleString()}</p>
                       </div>
                     </div>
+                    {['confirmed', 'active', 'completed'].includes(b.status) && (
+                      <div className="mt-4 pt-4 border-t border-white/[0.04] flex justify-end">
+                        <button 
+                          onClick={() => setSelectedBookingForChat(b)} 
+                          className="flex items-center gap-2 text-xs font-semibold bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 px-4 py-2 rounded-xl transition-all border border-orange-500/20"
+                        >
+                          <MessageSquare size={14} />
+                          Chat & Handover Coordinator
+                        </button>
+                      </div>
+                    )}
                   </motion.div>
                 ))
               )}
@@ -769,6 +783,21 @@ export default function CustomerDashboard() {
           )}
         </div>
       </div>
+      <AnimatePresence>
+        {selectedBookingForChat && (
+          <HandoverChatCoordinator
+            booking={selectedBookingForChat}
+            currentUser={{ id: user?._id || user?.id, role: user?.role, name: user?.name }}
+            onClose={() => setSelectedBookingForChat(null)}
+            onBookingUpdated={(updatedBooking) => {
+              setBookings((prev) => 
+                prev.map((b) => b._id === updatedBooking._id ? { ...b, ...updatedBooking } : b)
+              );
+              setSelectedBookingForChat(updatedBooking);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
