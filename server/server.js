@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/admin');
 const reviewRoutes = require('./routes/reviews');
 const pricingRoutes = require('./routes/pricing');
 const notificationRoutes = require('./routes/notifications');
+const messageRoutes = require('./routes/messages');
 
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/messages', messageRoutes);
 
 
 // 404 handler
@@ -79,6 +81,16 @@ app.set('io', io);
 io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
   
+  socket.on('join:booking', ({ bookingId }) => {
+    socket.join(bookingId);
+    console.log(`🔌 Socket ${socket.id} joined room ${bookingId}`);
+  });
+
+  socket.on('leave:booking', ({ bookingId }) => {
+    socket.leave(bookingId);
+    console.log(`🔌 Socket ${socket.id} left room ${bookingId}`);
+  });
+
   socket.on('disconnect', () => {
     console.log(`🔌 Client disconnected: ${socket.id}`);
   });
