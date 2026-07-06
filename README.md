@@ -165,7 +165,6 @@ RentiGo features a highly modern user interface featuring premium, responsive mi
 * **Particles Background:** Immersive interactive particle effects on the home and authentication landing pages.
 * **Cursor Glow Effect:** A smooth gradient glow trail following user cursor movements on dark containers.
 * **Scroll Progress Bar:** Visual progress feedback indicator mounted at the top of long pages.
-* **Floating WhatsApp Widget:** Direct client hook to immediately contact RentiGo support (`+91 96870 08865`).
 
 ---
 
