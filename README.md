@@ -90,24 +90,6 @@ veRent/
 
 ## ⚙️ Environment Configuration
 
-Before running the application, you must define the environment variables.
-
-### Backend Setup (`server/.env`)
-Create a file named `.env` in the `server` directory and configure the variables as follows:
-```env
-PORT=5005
-MONGO_URI=mongodb://localhost:27017/verent  # Or your MongoDB Atlas connection string
-JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-JWT_EXPIRE=7d
-NODE_ENV=development
-
-# Email Configuration (Nodemailer - Optional for recovery)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
-EMAIL_FROM=team@rentigo.in
-
 # Frontend Origin URL
 CLIENT_URL=http://localhost:5173
 ```
