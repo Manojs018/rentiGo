@@ -3,13 +3,14 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Car, User, Mail, Lock, Phone, MapPin, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'customer', city: 'Ahmedabad' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -123,6 +124,36 @@ export default function Register() {
                 : <span className="flex items-center gap-2">Create Account <ArrowRight size={16} /></span>}
             </button>
           </form>
+
+          <div className="flex items-center my-5">
+            <div className="flex-1 border-t border-white/[0.08]" />
+            <span className="px-3 text-[11px] text-slate-500 uppercase font-semibold tracking-wider">Or continue with</span>
+            <div className="flex-1 border-t border-white/[0.08]" />
+          </div>
+
+          <div className="flex justify-center w-full google-btn-container mb-6">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                setLoading(true);
+                try {
+                  const data = await googleLogin(credentialResponse.credential, form.role);
+                  toast.success('Welcome to RentiGo! 🚗');
+                  if (data.user.role === 'owner') navigate('/owner');
+                  else navigate('/dashboard');
+                } catch (err) {
+                  toast.error(err.message);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              onError={() => {
+                toast.error('Google Sign-In failed. Please try again.');
+              }}
+              theme="filled_black"
+              shape="rectangular"
+              width="100%"
+            />
+          </div>
 
           <p className="text-center text-slate-400 text-sm mt-6">
             Already have an account?{' '}

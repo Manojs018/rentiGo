@@ -3,13 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Car, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -98,6 +99,37 @@ export default function Login() {
               )}
             </button>
           </form>
+
+          <div className="flex items-center my-5">
+            <div className="flex-1 border-t border-white/[0.08]" />
+            <span className="px-3 text-[11px] text-slate-500 uppercase font-semibold tracking-wider">Or continue with</span>
+            <div className="flex-1 border-t border-white/[0.08]" />
+          </div>
+
+          <div className="flex justify-center w-full google-btn-container mb-6">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                setLoading(true);
+                try {
+                  const data = await googleLogin(credentialResponse.credential);
+                  toast.success(`Welcome back, ${data.user.name}! 🎉`);
+                  if (data.user.role === 'admin') navigate('/admin');
+                  else if (data.user.role === 'owner') navigate('/owner');
+                  else navigate('/dashboard');
+                } catch (err) {
+                  toast.error(err.message);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              onError={() => {
+                toast.error('Google Sign-In failed. Please try again.');
+              }}
+              theme="filled_black"
+              shape="rectangular"
+              width="100%"
+            />
+          </div>
 
           {/* Demo accounts */}
           <div className="mt-6 p-4 bg-orange-500/5 border border-orange-500/10 rounded-xl">
