@@ -307,3 +307,12 @@
   opacity: 0;
   transition: opacity 0.3s ease;
 }
+
+/* Google Sign-In Button Responsive Wrapper */
+.google-btn-container > div {
+  width: 100% !important;
+}
+.google-btn-container iframe {
+  width: 100% !important;
+  border-radius: 12px;
+}
