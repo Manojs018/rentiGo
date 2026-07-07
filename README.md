@@ -90,24 +90,6 @@ veRent/
 
 ## ⚙️ Environment Configuration
 
-Before running the application, you must define the environment variables.
-
-### Backend Setup (`server/.env`)
-Create a file named `.env` in the `server` directory and configure the variables as follows:
-```env
-PORT=5005
-MONGO_URI=mongodb://localhost:27017/verent  # Or your MongoDB Atlas connection string
-JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-JWT_EXPIRE=7d
-NODE_ENV=development
-
-# Email Configuration (Nodemailer - Optional for recovery)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
-EMAIL_FROM=team@rentigo.in
-
 # Frontend Origin URL
 CLIENT_URL=http://localhost:5173
 ```
@@ -183,7 +165,6 @@ RentiGo features a highly modern user interface featuring premium, responsive mi
 * **Particles Background:** Immersive interactive particle effects on the home and authentication landing pages.
 * **Cursor Glow Effect:** A smooth gradient glow trail following user cursor movements on dark containers.
 * **Scroll Progress Bar:** Visual progress feedback indicator mounted at the top of long pages.
-* **Floating WhatsApp Widget:** Direct client hook to immediately contact RentiGo support (`+91 96870 08865`).
 
 ---
 
