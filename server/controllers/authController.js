@@ -272,3 +272,75 @@ exports.toggleFavorite = async (req, res) => {
   }
 };
 
+// @desc    Google login / register
+// @route   POST /api/auth/google
+// @access  Public
+exports.googleLogin = async (req, res) => {
+  try {
+    const { idToken, role } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ success: false, message: 'Please provide Google idToken' });
+    }
+
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub } = payload;
+
+    // Check if user exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // If user exists, but doesn't have a googleId, link it
+      if (!user.googleId) {
+        user.googleId = sub;
+        user.authProvider = 'google';
+        if (!user.avatar && picture) {
+          user.avatar = picture;
+        }
+        await user.save();
+      }
+    } else {
+      // Create new user
+      user = await User.create({
+        name,
+        email,
+        googleId: sub,
+        authProvider: 'google',
+        avatar: picture || '',
+        role: role || 'customer',
+        isVerified: true,
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: 'Account has been deactivated' });
+    }
+
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        city: user.city,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
