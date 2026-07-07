@@ -82,6 +82,19 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const googleLogin = async (idToken, role) => {
+    dispatch({ type: 'LOGIN_START' });
+    try {
+      const { data } = await authAPI.googleLogin(idToken, role);
+      dispatch({ type: 'LOGIN_SUCCESS', payload: data });
+      return data;
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Google authentication failed';
+      dispatch({ type: 'LOGIN_FAIL', payload: msg });
+      throw new Error(msg);
+    }
+  };
+
   const register = async (userData) => {
     dispatch({ type: 'LOGIN_START' });
     try {
@@ -110,6 +123,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       ...state,
       login,
+      googleLogin,
       register,
       logout,
       updateUser,
