@@ -2,7 +2,7 @@
 
 > **Taxi, Bike & Vehicle Rentals in India – Easy Search, Seamless Handover, and Real-time Communication.**
 
-RentiGo is a fully featured, production-ready, multi-role vehicle rental platform built with the MERN stack (MongoDB, Express.js, React, Node.js). It connects vehicle owners looking to monetize their fleet (cars, SUVs, bikes, and scooters) with customers seeking flexible, affordable rental plans (daily, weekly, or monthly) across India. The application features a robust real-time communication system, administrative compliance workflows, service/diagnostics tracking, and an interactive earnings simulator.
+RentiGo is a fully featured, production-ready, multi-role vehicle rental platform built with the MERN stack (MongoDB Express.js, React, Node.js). It connects vehicle owners looking to monetize their fleet (cars, SUVs, bikes, and scooters) with customers seeking flexible, affordable rental plans (daily, weekly, or monthly) across India. The application features a robust real-time communication system, administrative compliance workflows, service/diagnostics tracking, and an interactive earnings simulator.
 
 ---
 
