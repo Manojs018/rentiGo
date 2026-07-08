@@ -28,7 +28,7 @@ function authReducer(state, action) {
     case 'LOGIN_FAIL':
       return { ...state, loading: false, error: action.payload };
     case 'LOGOUT':
-      return { ...state, user: null, token: null, error: null };
+      return { ...state, user: null, token: null, error: null, loading: false };
     case 'UPDATE_USER':
       return { ...state, user: { ...state.user, ...action.payload } };
     case 'CLEAR_ERROR':
@@ -99,7 +99,7 @@ export function AuthProvider({ children }) {
     dispatch({ type: 'LOGIN_START' });
     try {
       const { data } = await authAPI.register(userData);
-      dispatch({ type: 'LOGIN_SUCCESS', payload: data });
+      dispatch({ type: 'LOGOUT' });
       return data;
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed';
