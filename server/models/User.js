@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
     required: [true, 'Email is required'],
     unique: true,
     lowercase: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
+    match: [/^[a-zA-Z0-9._%+-]+@(gmail\.com|googlemail\.com)$/, 'Only Google email accounts (@gmail.com or @googlemail.com) are allowed'],
   },
   password: {
     type: String,
@@ -59,6 +59,8 @@ const UserSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
+  verificationToken: String,
+  verificationTokenExpire: Date,
   favoriteVehicles: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vehicle',
@@ -104,6 +106,23 @@ UserSchema.methods.getResetPasswordToken = function () {
   this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
 
   return resetToken;
+};
+
+// Generate and hash email verification token
+UserSchema.methods.getVerificationToken = function () {
+  // Generate token
+  const verificationToken = crypto.randomBytes(20).toString('hex');
+
+  // Hash token and set to verificationToken field
+  this.verificationToken = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+
+  // Set expire (24 hours)
+  this.verificationTokenExpire = Date.now() + 24 * 60 * 60 * 1000;
+
+  return verificationToken;
 };
 
 module.exports = mongoose.model('User', UserSchema);
