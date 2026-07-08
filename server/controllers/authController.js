@@ -89,7 +89,15 @@ exports.login = async (req, res) => {
     }
 
     const user = await User.findOne({ email }).select('+password');
-    if (!user || !(await user.matchPassword(password))) {
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    if (user.authProvider === 'google') {
+      return res.status(401).json({ success: false, message: 'This email is registered using Google OAuth. Please log in with Google.' });
+    }
+
+    if (!(await user.matchPassword(password))) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
@@ -161,6 +169,10 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ success: false, message: 'No user found with that email' });
+    }
+
+    if (user.authProvider === 'google') {
+      return res.status(400).json({ success: false, message: 'This email is registered using Google OAuth. Please log in with Google.' });
     }
 
     // Generate reset token
@@ -329,6 +341,16 @@ exports.googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
+
+    // Verify Google ID token claims
+    if (!payload.email_verified) {
+      return res.status(400).json({ success: false, message: 'Google account email is not verified' });
+    }
+
+    if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+      return res.status(400).json({ success: false, message: 'Audience mismatch: invalid client ID' });
+    }
+
     const { email, name, picture, sub } = payload;
 
     // Check if user exists
