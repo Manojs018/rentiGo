@@ -135,9 +135,9 @@ export default function Login() {
           <div className="mt-6 p-4 bg-orange-500/5 border border-orange-500/10 rounded-xl">
             <p className="text-xs text-slate-400 mb-2 font-medium">🚀 Demo Accounts:</p>
             <div className="space-y-1 text-xs text-slate-500">
-              <p>Customer: customer@demo.com / demo123</p>
-              <p>Owner: owner@demo.com / demo123</p>
-              <p>Admin: admin@demo.com / demo123</p>
+              <p>Customer: customer@gmail.com / demo123</p>
+              <p>Owner: owner@gmail.com / demo123</p>
+              <p>Admin: admin@gmail.com / demo123</p>
             </div>
           </div>
 
