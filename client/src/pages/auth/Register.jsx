@@ -24,13 +24,17 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|googlemail\.com)$/i;
+    if (!gmailRegex.test(form.email)) {
+      toast.error('Only Google email accounts (@gmail.com or @googlemail.com) are allowed');
+      return;
+    }
     if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      await register(form);
-      toast.success('Account created! Welcome to RentiGo 🚗');
-      if (form.role === 'owner') navigate('/owner');
-      else navigate('/dashboard');
+      const res = await register(form);
+      toast.success(res?.message || 'Registration successful! Verification email sent. Please check your inbox.', { duration: 6000 });
+      navigate('/login');
     } catch (err) {
       toast.error(err.message);
     } finally {
