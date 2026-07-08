@@ -171,5 +171,5 @@ RentiGo features a highly modern user interface featuring premium, responsive mi
 ## 📄 License
 This project is licensed under the ISC License.
 ```
-© 2026 Rentigo. All Rights Reserved. | Designed with ❤️ in Gujarat, India.
+© 2026 Rentigo. All Rights Reserved.
 ```
