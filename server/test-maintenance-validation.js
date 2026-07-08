@@ -9,7 +9,7 @@ async function runTests() {
     const ownerLoginRes = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'owner@demo.com', password: 'demo123' })
+      body: JSON.stringify({ email: 'owner@gmail.com', password: 'demo123' })
     });
     
     if (!ownerLoginRes.ok) {
@@ -98,7 +98,7 @@ async function runTests() {
     const customerLoginRes = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'customer@demo.com', password: 'demo123' })
+      body: JSON.stringify({ email: 'customer@gmail.com', password: 'demo123' })
     });
     
     if (!customerLoginRes.ok) {
