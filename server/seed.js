@@ -20,9 +20,9 @@ const seed = async () => {
 
     // Create Users
     const users = await User.insertMany([
-      { name: 'Admin User', email: 'admin@demo.com', password: hashedPassword, role: 'admin', phone: '9876543210', city: 'Ahmedabad' },
-      { name: 'Owner User', email: 'owner@demo.com', password: hashedPassword, role: 'owner', phone: '9876543211', city: 'Surat' },
-      { name: 'Customer User', email: 'customer@demo.com', password: hashedPassword, role: 'customer', phone: '9876543212', city: 'Ahmedabad' },
+      { name: 'Admin User', email: 'admin@gmail.com', password: hashedPassword, role: 'admin', phone: '9876543210', city: 'Ahmedabad', isVerified: true },
+      { name: 'Owner User', email: 'owner@gmail.com', password: hashedPassword, role: 'owner', phone: '9876543211', city: 'Surat', isVerified: true },
+      { name: 'Customer User', email: 'customer@gmail.com', password: hashedPassword, role: 'customer', phone: '9876543212', city: 'Ahmedabad', isVerified: true },
     ]);
 
     const ownerId = users[1]._id;
