@@ -17,28 +17,62 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, phone, role, city } = req.body;
 
+    // Validate if it is a Google email account
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|googlemail\.com)$/i;
+    if (!gmailRegex.test(email)) {
+      return res.status(400).json({ success: false, message: 'Only Google email accounts (@gmail.com or @googlemail.com) are allowed' });
+    }
+
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
-    const user = await User.create({ name, email, password, phone, role: role || 'customer', city });
-    const token = generateToken(user._id);
+    const user = await User.create({ name, email, password, phone, role: role || 'customer', city, isVerified: false });
+    
+    // Generate verification token
+    const verificationToken = user.getVerificationToken();
+    await user.save({ validateBeforeSave: false });
 
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
+    // Create verification URL
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const verifyUrl = `${clientUrl}/verify-email/${verificationToken}`;
+
+    const message = `Welcome to RentiGo, ${user.name}!\n\nPlease verify your email by clicking the link below:\n\n${verifyUrl}\n\nThis link is valid for 24 hours.`;
+    const htmlMessage = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #0b0b0f; color: #f8fafc;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="color: #f97316; margin: 0; font-size: 24px; font-weight: bold;">RentiGo</h2>
+        </div>
+        <p style="font-size: 16px; line-height: 1.5; color: #cbd5e1;">Hello ${user.name},</p>
+        <p style="font-size: 16px; line-height: 1.5; color: #cbd5e1;">Welcome to RentiGo! To finalize your registration and activate your account, please verify your email address by clicking the button below:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verifyUrl}" style="background-color: #f97316; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);">Verify Email Address</a>
+        </div>
+        <p style="font-size: 14px; color: #94a3b8; line-height: 1.5;">This link is valid for 24 hours. If you did not sign up for a RentiGo account, you can safely ignore this email.</p>
+        <hr style="border: 0; border-top: 1px solid #334155; margin: 25px 0;" />
+        <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">Need help? Contact support at support@rentigo.in</p>
+      </div>
+    `;
+
+    try {
+      await sendEmail({
         email: user.email,
-        role: user.role,
-        phone: user.phone,
-        city: user.city,
-        avatar: user.avatar,
-      },
-    });
+        subject: 'Verify your RentiGo Account',
+        message,
+        html: htmlMessage,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Registration successful! Verification email sent. Please check your inbox.',
+      });
+    } catch (err) {
+      console.error('Email verification sending failed:', err);
+      await User.findByIdAndDelete(user._id);
+      return res.status(500).json({ success: false, message: 'Verification email could not be sent. Please try registering again.' });
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -61,6 +95,10 @@ exports.login = async (req, res) => {
 
     if (!user.isActive) {
       return res.status(403).json({ success: false, message: 'Account has been deactivated' });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ success: false, message: 'Please verify your email address before logging in' });
     }
 
     const token = generateToken(user._id);
@@ -297,13 +335,22 @@ exports.googleLogin = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (user) {
+      let needsSave = false;
       // If user exists, but doesn't have a googleId, link it
       if (!user.googleId) {
         user.googleId = sub;
         user.authProvider = 'google';
+        needsSave = true;
         if (!user.avatar && picture) {
           user.avatar = picture;
         }
+      }
+      // If they successfully logged in via Google OAuth, they own this email
+      if (!user.isVerified) {
+        user.isVerified = true;
+        needsSave = true;
+      }
+      if (needsSave) {
         await user.save();
       }
     } else {
@@ -337,6 +384,53 @@ exports.googleLogin = async (req, res) => {
         city: user.city,
         avatar: user.avatar,
       },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Verify email address using token
+// @route   GET /api/auth/verify-email/:token
+// @access  Public
+exports.verifyEmail = async (req, res) => {
+  try {
+    console.log('[VerifyEmail] Received raw token from client:', req.params.token);
+
+    // Hash token
+    const verificationToken = crypto
+      .createHash('sha256')
+      .update(req.params.token)
+      .digest('hex');
+
+    console.log('[VerifyEmail] Hashed token to query:', verificationToken);
+
+    const user = await User.findOne({
+      verificationToken,
+      verificationTokenExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      console.log('[VerifyEmail] No user found with this token or token has expired.');
+      const userWithExpiredToken = await User.findOne({ verificationToken });
+      if (userWithExpiredToken) {
+        console.log('[VerifyEmail] User found but token is EXPIRED. Expiration time:', userWithExpiredToken.verificationTokenExpire);
+      } else {
+        console.log('[VerifyEmail] No user matched the token at all.');
+      }
+      return res.status(400).json({ success: false, message: 'Invalid or expired verification token' });
+    }
+
+    console.log('[VerifyEmail] User found! Verifying email for:', user.email);
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpire = undefined;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Email address verified successfully. You can now log in.',
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
