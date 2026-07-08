@@ -9,7 +9,7 @@ const runTest = async () => {
     console.log('Connected!');
 
     // 1. Get or create a test user
-    const email = 'customer@demo.com';
+    const email = 'customer@gmail.com';
     let user = await User.findOne({ email });
     if (!user) {
       console.log('No seed user found. Seeding temp user...');
@@ -18,7 +18,8 @@ const runTest = async () => {
         email,
         password: 'demo123',
         phone: '1234567890',
-        city: 'Ahmedabad'
+        city: 'Ahmedabad',
+        isVerified: true
       });
     }
 
