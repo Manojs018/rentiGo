@@ -21,6 +21,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import VerifyEmail from './pages/auth/VerifyEmail';
 import CustomerDashboard from './pages/dashboard/CustomerDashboard';
 import OwnerDashboard from './pages/dashboard/OwnerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
@@ -50,6 +51,7 @@ function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/verify-email/:token" element={<VerifyEmail />} />
       <Route path="/dashboard" element={
         <ProtectedRoute roles={['customer']}>
           <CustomerDashboard />
