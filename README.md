@@ -118,11 +118,11 @@ Make sure your MongoDB server is running. Seed the database with mock users, veh
 npm run seed --prefix server
 ```
 *This creates the following default accounts (password for all is `demo123`):*
-* **Admin:** `admin@demo.com`
+
 * **Owner:** `owner@demo.com`
 * **Customer:** `customer@demo.com`
 
-### 3. Run the Development Server
+### 3. Run the Development Serve
 Launch both the Vite frontend and Express backend concurrently:
 ```bash
 npm run dev
