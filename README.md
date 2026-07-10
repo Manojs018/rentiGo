@@ -119,7 +119,7 @@ npm run seed --prefix server
 ```
 *This creates the following default accounts (password for all is `demo123`):*
 
-* **Owner:** `owner@demo.com`
+
 * **Customer:** `customer@demo.com`
 
 ### 3. Run the Development Serve
