@@ -116,11 +116,6 @@ npm run install-all
 Make sure your MongoDB server is running. Seed the database with mock users, vehicles, and booking history to quickly test the multi-role dashboards:
 ```bash
 npm run seed --prefix server
-```
-*This creates the following default accounts (password for all is `demo123`):*
-
-
-* **Customer:** `customer@demo.com`
 
 ### 3. Run the Development Serve
 Launch both the Vite frontend and Express backend concurrently:
