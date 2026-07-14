@@ -23,8 +23,9 @@ connectDB();
 
 // Security & Parsing Middleware
 app.use(helmet());
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 app.use(cors({
-  origin: true,
+  origin: clientUrl,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -71,7 +72,7 @@ const { Server } = require('socket.io');
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: true,
+    origin: clientUrl,
     credentials: true,
   }
 });
