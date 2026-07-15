@@ -94,6 +94,7 @@ export const messageAPI = {
   getMessages: (bookingId) => api.get(`/messages/${bookingId}`),
   sendMessage: (bookingId, data) => api.post(`/messages/${bookingId}`, data),
   updateHandover: (bookingId, handoverDetails) => api.put(`/messages/${bookingId}/handover`, { handoverDetails }),
+  updateDamagePins: (bookingId, damagePins) => api.put(`/messages/${bookingId}/damage-pins`, { damagePins }),
 };
 
 export default api;
