@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Send, MapPin, Key, CheckCircle2, ShieldCheck, 
-  Clock, Navigation, MessageSquare, AlertCircle, Compass 
+  Clock, Navigation, MessageSquare, AlertCircle, Compass,
+  Camera, Trash2, Plus, Edit3, Image as ImageIcon
 } from 'lucide-react';
 import { messageAPI } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import toast from 'react-hot-toast';
+import VehicleDamageVector from './VehicleDamageVector';
 
 export default function HandoverChatCoordinator({ booking, currentUser, onClose, onBookingUpdated }) {
   const socket = useSocket();
@@ -18,6 +20,159 @@ export default function HandoverChatCoordinator({ booking, currentUser, onClose,
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [locationAddress, setLocationAddress] = useState('');
   
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' or 'inspect'
+  const [selectedPin, setSelectedPin] = useState(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [isEditingPin, setIsEditingPin] = useState(false);
+  const [pinForm, setPinForm] = useState({
+    id: '',
+    x: 0,
+    y: 0,
+    part: '',
+    type: 'scratch',
+    notes: '',
+    photo: ''
+  });
+
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+      };
+    });
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const compressedBase64 = await compressImage(file);
+      setPinForm(prev => ({ ...prev, photo: compressedBase64 }));
+      toast.success('Validation photo loaded & compressed!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to process image');
+    }
+  };
+
+  const handleInitiatePin = (x, y, inferredPart) => {
+    setPinForm({
+      id: `pin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      x,
+      y,
+      part: inferredPart,
+      type: 'scratch',
+      notes: '',
+      photo: ''
+    });
+    setIsEditingPin(false);
+    setShowPinModal(true);
+  };
+
+  const handleSelectPin = (pin) => {
+    setSelectedPin(pin);
+    setPinForm({ ...pin });
+    setIsEditingPin(true);
+    setShowPinModal(true);
+  };
+
+  const handleSavePin = async (e) => {
+    e.preventDefault();
+    if (!pinForm.part.trim()) {
+      toast.error('Please specify the affected vehicle part');
+      return;
+    }
+
+    const currentRole = isOwner ? 'owner' : 'customer';
+    const finalPin = {
+      ...pinForm,
+      reportedBy: isEditingPin ? pinForm.reportedBy : currentRole,
+      createdAt: isEditingPin ? pinForm.createdAt : new Date()
+    };
+
+    let updatedPins = [];
+    if (isEditingPin) {
+      updatedPins = (bookingState.damagePins || []).map(p => p.id === finalPin.id ? finalPin : p);
+    } else {
+      updatedPins = [...(bookingState.damagePins || []), finalPin];
+    }
+
+    try {
+      const { data } = await messageAPI.updateDamagePins(bookingState._id, updatedPins);
+      setBookingState(data.data);
+      if (onBookingUpdated) onBookingUpdated(data.data);
+      setShowPinModal(false);
+      setSelectedPin(null);
+      toast.success(isEditingPin ? 'Damage report updated!' : 'Damage pin added successfully!');
+      
+      const actionText = isEditingPin ? 'updated a' : 'reported a new';
+      await messageAPI.sendMessage(bookingState._id, {
+        content: `🛠️ ${currentUser?.name} (${currentRole}) ${actionText} cosmetic damage: ${finalPin.type.toUpperCase()} on ${finalPin.part}. Note: "${finalPin.notes || 'None'}"`,
+        type: 'text'
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save damage pin');
+    }
+  };
+
+  const handleDeletePin = async (pinId) => {
+    const pinToDelete = (bookingState.damagePins || []).find(p => p.id === pinId);
+    if (!pinToDelete) return;
+    
+    const currentRole = isOwner ? 'owner' : 'customer';
+    if (pinToDelete.reportedBy !== currentRole) {
+      toast.error("You cannot delete a pin reported by the other user.");
+      return;
+    }
+
+    const updatedPins = (bookingState.damagePins || []).filter(p => p.id !== pinId);
+    try {
+      const { data } = await messageAPI.updateDamagePins(bookingState._id, updatedPins);
+      setBookingState(data.data);
+      if (onBookingUpdated) onBookingUpdated(data.data);
+      setShowPinModal(false);
+      setSelectedPin(null);
+      toast.success('Damage pin removed');
+      
+      await messageAPI.sendMessage(bookingState._id, {
+        content: `🗑️ ${currentUser?.name} (${currentRole}) removed a cosmetic damage pin for the ${pinToDelete.part}.`,
+        type: 'text'
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete damage pin');
+    }
+  };
+
   const messagesEndRef = useRef(null);
 
   const isOwner = currentUser?.role === 'owner';
@@ -208,7 +363,7 @@ export default function HandoverChatCoordinator({ booking, currentUser, onClose,
         animate={{ x: 0 }} 
         exit={{ x: '100%' }} 
         transition={{ type: 'tween', duration: 0.35 }}
-        className="relative z-10 w-full max-w-lg h-full bg-[#0a0a0f] border-l border-white/[0.08] flex flex-col shadow-2xl"
+        className={`relative z-10 w-full ${activeTab === 'inspect' ? 'max-w-2xl' : 'max-w-lg'} h-full bg-[#0a0a0f] border-l border-white/[0.08] flex flex-col shadow-2xl transition-all duration-300`}
       >
         {/* Panel Header */}
         <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-[#0e0e16]/80 backdrop-blur-md">
@@ -267,7 +422,34 @@ export default function HandoverChatCoordinator({ booking, currentUser, onClose,
           </div>
         </div>
 
-        {/* Safety Platform Card */}
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-white/[0.08] bg-[#0c0c14]/80">
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 flex items-center justify-center gap-2 ${
+              activeTab === 'chat'
+                ? 'text-orange-500 border-orange-500 bg-orange-500/5'
+                : 'text-slate-400 border-transparent hover:text-white hover:bg-white/[0.02]'
+            }`}
+          >
+            <MessageSquare size={14} /> Secure Chat
+          </button>
+          <button
+            onClick={() => setActiveTab('inspect')}
+            className={`flex-1 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 flex items-center justify-center gap-2 ${
+              activeTab === 'inspect'
+                ? 'text-orange-500 border-orange-500 bg-orange-500/5'
+                : 'text-slate-400 border-transparent hover:text-white hover:bg-white/[0.02]'
+            }`}
+          >
+            <ShieldCheck size={14} /> Damage Inspection
+          </button>
+        </div>
+
+        {/* Tab content: Secure Chat */}
+        {activeTab === 'chat' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Safety Platform Card */}
         <div className="m-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl flex gap-2.5 items-start">
           <ShieldCheck size={18} className="text-blue-400 shrink-0 mt-0.5" />
           <div>
@@ -540,6 +722,8 @@ export default function HandoverChatCoordinator({ booking, currentUser, onClose,
             <Send size={16} />
           </button>
         </form>
+      </div>
+    )}
 
         {/* Modal: Share Location Address */}
         <AnimatePresence>
@@ -587,6 +771,215 @@ export default function HandoverChatCoordinator({ booking, currentUser, onClose,
                     Share location
                   </button>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Tab content: Damage Inspection */}
+        {activeTab === 'inspect' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Scrollable container for vector and list of damage pins */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <VehicleDamageVector 
+                type={bookingState.vehicle?.type} 
+                pins={bookingState.damagePins || []} 
+                onAddPin={handleInitiatePin}
+                onSelectPin={handleSelectPin}
+                selectedPinId={selectedPin?.id}
+              />
+
+              {/* Reported Damage Items List */}
+              <div className="space-y-3">
+                <h4 className="text-white font-bold text-sm flex items-center gap-2 border-b border-white/[0.05] pb-2">
+                  <ShieldCheck className="text-orange-500" size={16} /> Cosmetic Damage Logs ({bookingState.damagePins?.length || 0})
+                </h4>
+
+                {(!bookingState.damagePins || bookingState.damagePins.length === 0) ? (
+                  <div className="text-center py-8 text-xs text-slate-500 bg-[#0d0d15]/30 rounded-xl border border-white/[0.04] p-4">
+                    No cosmetic damage reported. Tap the schematic above to add color-coded pins.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {bookingState.damagePins.map((pin) => {
+                      const isMe = pin.reportedBy === (isOwner ? 'owner' : 'customer');
+                      return (
+                        <div 
+                          key={pin.id}
+                          onClick={() => handleSelectPin(pin)}
+                          className="bg-[#0e0e16]/60 border border-white/[0.05] hover:border-orange-500/20 rounded-xl p-3 flex gap-3 items-start cursor-pointer hover:bg-white/[0.01] transition-all"
+                        >
+                          {pin.photo ? (
+                            <img 
+                              src={pin.photo} 
+                              alt={pin.part} 
+                              className="w-16 h-16 rounded-lg object-cover shrink-0 border border-white/[0.08]" 
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-lg bg-black/40 border border-white/[0.05] flex flex-col items-center justify-center text-slate-500 shrink-0">
+                              <ImageIcon size={18} className="text-slate-600" />
+                              <span className="text-[8px] mt-1 font-semibold text-slate-600">No Image</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-white font-bold text-xs truncate">{pin.part}</span>
+                              <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-md font-extrabold ${
+                                pin.type === 'scratch' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                pin.type === 'dent' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                                pin.type === 'crack' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
+                                'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                              }`}>
+                                {pin.type}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 select-text">{pin.notes || 'No description provided.'}</p>
+                            <div className="flex items-center justify-between mt-2 text-[9px] text-slate-500">
+                              <span>By: <strong className="text-slate-300 font-semibold">{pin.reportedBy === 'owner' ? 'Owner' : 'Customer'}</strong> {isMe && '(You)'}</span>
+                              <span>{new Date(pin.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Add/Edit Damage Pin */}
+        <AnimatePresence>
+          {showPinModal && (
+            <div className="absolute inset-0 z-[60] flex items-center justify-center p-4">
+              {/* Modal Backdrop */}
+              <div 
+                className="absolute inset-0 bg-black/75" 
+                onClick={() => {
+                  setShowPinModal(false);
+                  setSelectedPin(null);
+                }} 
+              />
+              
+              {/* Modal Box */}
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="relative z-10 w-full max-w-sm glass card-glow p-5 rounded-2xl border border-white/[0.08] max-h-[90vh] overflow-y-auto flex flex-col"
+              >
+                <h4 className="text-white font-bold text-base mb-3 flex items-center gap-1.5">
+                  <ShieldCheck size={18} className="text-orange-400" /> 
+                  {isEditingPin ? 'Edit Damage Report' : 'Report Vehicle Damage'}
+                </h4>
+                
+                <form onSubmit={handleSavePin} className="space-y-4 flex-1">
+                  <div>
+                    <label className="block text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1.5">Vehicle Part</label>
+                    <input
+                      type="text"
+                      value={pinForm.part}
+                      onChange={(e) => setPinForm(prev => ({ ...prev, part: e.target.value }))}
+                      placeholder="e.g. Front Bumper, Left Door"
+                      className="w-full input-field bg-[#12121a] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 transition-all font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1.5">Damage Type</label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {['scratch', 'dent', 'crack', 'other'].map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setPinForm(prev => ({ ...prev, type: t }))}
+                          className={`py-1.5 text-[10px] font-black uppercase rounded-lg border transition-all ${
+                            pinForm.type === t
+                              ? t === 'scratch' ? 'bg-amber-500/10 text-amber-400 border-amber-500' :
+                                t === 'dent' ? 'bg-red-500/10 text-red-400 border-red-500' :
+                                t === 'crack' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500' :
+                                'bg-cyan-500/10 text-cyan-400 border-cyan-500'
+                              : 'bg-black/20 text-slate-500 border-white/[0.04] hover:text-slate-300'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1.5">Description & Notes</label>
+                    <textarea
+                      value={pinForm.notes}
+                      onChange={(e) => setPinForm(prev => ({ ...prev, notes: e.target.value }))}
+                      placeholder="Describe the damage (e.g. 3-inch scratch, minor paint scrape)"
+                      className="w-full h-20 input-field bg-[#12121a] border border-white/[0.08] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-all resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1.5">Validation Photo</label>
+                    <div className="space-y-2">
+                      {pinForm.photo ? (
+                        <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/[0.08] bg-black/40">
+                          <img src={pinForm.photo} alt="Validation" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setPinForm(prev => ({ ...prev, photo: '' }))}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="w-full h-24 border border-dashed border-white/[0.08] hover:border-orange-500/30 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/[0.01] transition-all">
+                          <Camera size={20} className="text-slate-500" />
+                          <span className="text-[10px] font-bold text-slate-400 mt-1">Upload Photo</span>
+                          <span className="text-[8px] text-slate-600 mt-0.5">JPEG, PNG up to 10MB</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 justify-between pt-2 border-t border-white/[0.05]">
+                    {isEditingPin && pinForm.reportedBy === (isOwner ? 'owner' : 'customer') ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePin(pinForm.id)}
+                        className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 text-xs py-2 px-3 rounded-lg font-bold inline-flex items-center gap-1"
+                      >
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    ) : <div />}
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPinModal(false);
+                          setSelectedPin(null);
+                        }}
+                        className="text-xs text-slate-400 hover:text-white px-3 py-2 transition-all font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn-primary text-xs py-2 px-4 rounded-lg font-bold"
+                      >
+                        Save Pin
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </motion.div>
             </div>
           )}
