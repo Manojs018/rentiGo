@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Plus, List, BarChart2, Wrench, Home, LogOut, CheckCircle, XCircle, Clock, Edit2, Trash2, Battery, AlertTriangle, Activity, MessageSquare } from 'lucide-react';
+import { Car, Plus, List, BarChart2, Wrench, Home, LogOut, CheckCircle, XCircle, Clock, Edit2, Trash2, Battery, AlertTriangle, Activity, MessageSquare, TrendingUp, DollarSign } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
-import { vehicleAPI, bookingAPI } from '../../services/api';
+import { vehicleAPI, bookingAPI, pricingAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { AnimatePresence } from 'framer-motion';
 import HandoverChatCoordinator from '../../components/ui/HandoverChatCoordinator';
@@ -13,6 +13,7 @@ const navItems = [
   { id: 'overview', label: 'Overview', icon: Home },
   { id: 'fleet', label: 'My Fleet', icon: Car },
   { id: 'diagnostics', label: 'Diagnostics & Health', icon: Wrench },
+  { id: 'pricing', label: 'Smart Pricing', icon: TrendingUp },
   { id: 'add', label: 'Add Vehicle', icon: Plus },
   { id: 'bookings', label: 'Bookings', icon: List },
   { id: 'revenue', label: 'Revenue', icon: BarChart2 },
@@ -37,6 +38,12 @@ export default function OwnerDashboard() {
   // Diagnostics Tab States
   const [selectedDiagVehicleId, setSelectedDiagVehicleId] = useState(null);
   const [diagForm, setDiagForm] = useState({ tirePressure: 32, batteryCharge: 100, fuelLevel: 100, nextService: '' });
+  
+  // Smart Pricing States
+  const [suggestions, setSuggestions] = useState([]);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [minPrices, setMinPrices] = useState({});
+  const [maxPrices, setMaxPrices] = useState({});
   const [newLog, setNewLog] = useState({ serviceType: 'Oil Change', date: new Date().toISOString().split('T')[0], notes: '' });
   const [diagSaving, setDiagSaving] = useState(false);
   const socket = useSocket();
@@ -78,6 +85,76 @@ export default function OwnerDashboard() {
     }
   };
 
+  const fetchPricingSuggestions = async () => {
+    setPricingLoading(true);
+    try {
+      const res = await pricingAPI.getOwnerSuggestions();
+      const data = res.data.data || [];
+      setSuggestions(data);
+      
+      const mins = {};
+      const maxs = {};
+      data.forEach(s => {
+        mins[s.vehicleId] = s.smartPricingMinPrice || Math.round(s.dailyPrice * 0.7);
+        maxs[s.vehicleId] = s.smartPricingMaxPrice || Math.round(s.dailyPrice * 1.5);
+      });
+      setMinPrices(prev => ({ ...mins, ...prev }));
+      setMaxPrices(prev => ({ ...maxs, ...prev }));
+    } catch (err) {
+      console.error('Failed to fetch pricing suggestions', err);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const handleToggleSmartPricing = async (vehicleId, currentEnabled) => {
+    const minVal = Number(minPrices[vehicleId]) || 0;
+    const maxVal = Number(maxPrices[vehicleId]) || 10000;
+
+    if (minVal >= maxVal) {
+      toast.error('Minimum price must be less than maximum price');
+      return;
+    }
+
+    try {
+      const { data } = await pricingAPI.toggleSmart({
+        vehicleId,
+        enabled: !currentEnabled,
+        minPrice: minVal,
+        maxPrice: maxVal
+      });
+      toast.success(!currentEnabled ? 'Smart Pricing activated successfully! 📈' : 'Smart Pricing deactivated.');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to toggle Smart Pricing');
+    }
+  };
+
+  const handleUpdateSmartPricingBoundaries = async (vehicleId) => {
+    const minVal = Number(minPrices[vehicleId]) || 0;
+    const maxVal = Number(maxPrices[vehicleId]) || 10000;
+
+    if (minVal >= maxVal) {
+      toast.error('Minimum price must be less than maximum price');
+      return;
+    }
+
+    try {
+      await pricingAPI.toggleSmart({
+        vehicleId,
+        enabled: true,
+        minPrice: minVal,
+        maxPrice: maxVal
+      });
+      toast.success('Pricing boundaries updated & optimized! 📈');
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update boundaries');
+    }
+  };
+
   const fetchData = async () => {
     try {
       const [vRes, bRes] = await Promise.all([vehicleAPI.getMy(), bookingAPI.getOwner()]);
@@ -87,6 +164,7 @@ export default function OwnerDashboard() {
       if (myVehicles.length > 0 && !selectedDiagVehicleId) {
         setSelectedDiagVehicleId(myVehicles[0]._id);
       }
+      fetchPricingSuggestions();
     } catch {
       // Demo data
       const demoVehicles = [
@@ -764,6 +842,185 @@ export default function OwnerDashboard() {
 
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {/* Smart Pricing Tab */}
+          {activeTab === 'pricing' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              
+              {/* Feature Header Card */}
+              <div className="glass card-glow p-6 rounded-2xl border border-white/[0.07] bg-gradient-to-r from-dark-800 to-orange-500/5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                      <TrendingUp size={22} className="text-orange-500" />
+                      Smart Pricing Optimization Center
+                    </h2>
+                    <p className="text-xs text-slate-400 max-w-2xl">
+                      Automate rates based on vehicle type, local demand, seasonal holidays, weekends, and fleet occupancy levels to maximize listing yield and overall profitability.
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-black uppercase">
+                    ⚡ Live Algorithms Active
+                  </div>
+                </div>
+              </div>
+
+              {/* Suggestions list */}
+              {pricingLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs text-slate-500">Calculating optimal pricing strategies...</span>
+                </div>
+              ) : suggestions.length === 0 ? (
+                <div className="glass rounded-2xl p-12 text-center border border-white/[0.07]">
+                  <p className="text-slate-500 italic text-sm">No vehicles found in your fleet. Add a vehicle first to optimize pricing.</p>
+                  <button onClick={() => setActiveTab('add')} className="btn-primary mx-auto mt-4 text-xs">🚗 Add a Vehicle</button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6">
+                  {suggestions.map((suggestion) => {
+                    const priceDiff = suggestion.recommendedPrice - suggestion.dailyPrice;
+                    const priceDiffPct = Math.round((priceDiff / suggestion.dailyPrice) * 100) || 0;
+                    
+                    return (
+                      <div key={suggestion.vehicleId} className="glass card-glow rounded-2xl p-6 border border-white/[0.07] hover:border-white/[0.12] transition-all grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        
+                        {/* Column 1: Vehicle Title, Status, Factors */}
+                        <div className="lg:col-span-5 space-y-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-white text-lg font-bold">{suggestion.brand} {suggestion.model}</h3>
+                              <span className="text-slate-500 text-xs font-semibold px-2 py-0.5 rounded bg-white/5 border border-white/5">{suggestion.vehicleNumber}</span>
+                            </div>
+                            <p className="text-slate-400 text-xs mt-1">📍 Located in {suggestion.city}</p>
+                          </div>
+
+                          {/* Dynamic optimization state badge */}
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold mb-1">Optimization State</span>
+                            {suggestion.smartPricingEnabled ? (
+                              <span className="inline-flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20 font-bold">
+                                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                                Smart Pricing Enabled (Optimized)
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 bg-white/5 px-3 py-1 rounded-full border border-white/5 font-semibold">
+                                <span className="w-2 h-2 rounded-full bg-slate-500" />
+                                Static Manual Daily Price
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Optimization Factors / Surge Reasons */}
+                          <div className="space-y-2">
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Real-Time Market Indicators</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {suggestion.reasons.length === 0 ? (
+                                <span className="text-xs text-slate-500 bg-white/5 px-2 py-1 rounded border border-white/5">No active surges or discounts</span>
+                              ) : (
+                                suggestion.reasons.map((r, rIdx) => {
+                                  const isSurge = r.includes('+');
+                                  return (
+                                    <span key={rIdx} className={`text-xs px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1 ${
+                                      isSurge 
+                                        ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' 
+                                        : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                    }`}>
+                                      {r}
+                                    </span>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Column 2: Price display comparison */}
+                        <div className="lg:col-span-3 flex flex-col items-center justify-center p-4 bg-white/[0.02] border border-white/[0.04] rounded-2xl text-center space-y-4">
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black block mb-1">Active Rate</span>
+                            <span className="text-2xl font-black text-white">₹{suggestion.dailyPrice}</span>
+                            <span className="text-slate-400 text-xs">/day</span>
+                          </div>
+
+                          <div className="w-full border-t border-white/[0.05] pt-3">
+                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black block mb-1">Suggested Rate</span>
+                            <span className="text-xl font-black text-orange-400">₹{suggestion.recommendedPrice}</span>
+                            <span className="text-slate-400 text-xs">/day</span>
+                          </div>
+
+                          {suggestion.smartPricingEnabled ? (
+                            <div className="text-[10px] text-slate-400 font-bold bg-white/5 px-2 py-1 rounded-lg">
+                              Clamped to boundaries
+                            </div>
+                          ) : (
+                            <div className={`text-xs font-black ${priceDiff >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {priceDiff >= 0 ? `▲ Increase by ${priceDiffPct}%` : `▼ Discount by ${Math.abs(priceDiffPct)}%`}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Column 3: Bounds configurator + Smart Toggle */}
+                        <div className="lg:col-span-4 space-y-4">
+                          {/* Toggle */}
+                          <div className="flex items-center justify-between border-b border-white/[0.05] pb-3">
+                            <div>
+                              <span className="text-xs text-white font-bold block">Smart Pricing Autopilot</span>
+                              <span className="text-[10px] text-slate-500 font-semibold block">Let algorithms auto-apply best rate</span>
+                            </div>
+                            <button
+                              onClick={() => handleToggleSmartPricing(suggestion.vehicleId, suggestion.smartPricingEnabled)}
+                              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                suggestion.smartPricingEnabled ? 'bg-orange-500' : 'bg-slate-700'
+                              }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  suggestion.smartPricingEnabled ? 'translate-x-5' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                          </div>
+
+                          {/* Boundaries inputs */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block mb-1">Min Boundary (₹)</label>
+                              <input
+                                type="number"
+                                value={minPrices[suggestion.vehicleId] ?? ''}
+                                onChange={(e) => setMinPrices({ ...minPrices, [suggestion.vehicleId]: Number(e.target.value) })}
+                                className="w-full input-field py-2 text-xs font-bold"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block mb-1">Max Boundary (₹)</label>
+                              <input
+                                type="number"
+                                value={maxPrices[suggestion.vehicleId] ?? ''}
+                                onChange={(e) => setMaxPrices({ ...maxPrices, [suggestion.vehicleId]: Number(e.target.value) })}
+                                className="w-full input-field py-2 text-xs font-bold"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleUpdateSmartPricingBoundaries(suggestion.vehicleId)}
+                            className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/30 text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <DollarSign size={14} className="text-orange-500" />
+                            Update Boundaries & Recalculate
+                          </button>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
             </motion.div>
           )}
 
