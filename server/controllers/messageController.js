@@ -126,3 +126,40 @@ exports.updateHandover = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Update vehicle damage inspection pins
+// @route   PUT /api/messages/:bookingId/damage-pins
+// @access  Protected (Customer/Owner)
+exports.updateDamagePins = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { damagePins } = req.body;
+
+    const booking = await Booking.findById(bookingId).populate('vehicle');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    // Verify authorized user
+    if (booking.customer.toString() !== req.user.id && booking.owner.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update damage checklist' });
+    }
+
+    if (damagePins) {
+      booking.damagePins = damagePins;
+    }
+
+    await booking.save();
+
+    // Broadcast updated booking state via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to(bookingId).emit('handover:updated', booking);
+    }
+
+    res.json({ success: true, data: booking });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
