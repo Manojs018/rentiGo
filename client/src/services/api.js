@@ -74,6 +74,8 @@ export const adminAPI = {
 // ── Pricing ────────────────────────────────────
 export const pricingAPI = {
   getPlans: () => api.get('/pricing'),
+  getOwnerSuggestions: () => api.get('/pricing/owner-suggestions'),
+  toggleSmart: (data) => api.put('/pricing/toggle-smart', data),
 };
 
 // ── Reviews ────────────────────────────────────
