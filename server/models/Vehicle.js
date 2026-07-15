@@ -43,6 +43,9 @@ const VehicleSchema = new mongoose.Schema({
   weeklyPrice: { type: Number },
   monthlyPrice: { type: Number },
   pricePerKm: { type: Number }, // For taxis
+  smartPricingEnabled: { type: Boolean, default: false },
+  smartPricingMinPrice: { type: Number, default: 0 },
+  smartPricingMaxPrice: { type: Number, default: 0 },
 
   // Location
   city: {
