@@ -89,6 +89,17 @@ const BookingSchema = new mongoose.Schema({
     vehicleInspected: { type: Boolean, default: false },
     handoverCompleted: { type: Boolean, default: false },
   },
+  damagePins: [{
+    id: { type: String, required: true },
+    x: { type: Number, required: true },
+    y: { type: Number, required: true },
+    part: { type: String, required: true },
+    type: { type: String, enum: ['scratch', 'dent', 'crack', 'other'], default: 'scratch' },
+    notes: String,
+    photo: String, // Base64 representation of image
+    reportedBy: { type: String, enum: ['owner', 'customer'] },
+    createdAt: { type: Date, default: Date.now }
+  }],
 }, { timestamps: true });
 
 // Auto-calculate duration in days
