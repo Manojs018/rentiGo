@@ -459,4 +459,221 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
+// @desc    Verify Driving License and Aadhaar documents
+// @route   PUT /api/auth/verify-documents
+// @access  Private
+exports.verifyDocuments = async (req, res) => {
+  try {
+    const { drivingLicense, aadhaar } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const currentDateStr = new Date().toISOString().split('T')[0];
+    let dlStatus = 'verified';
+    let dlMsg = 'Validated successfully.';
+    let aadhaarStatus = 'verified';
+    let aadhaarMsg = 'Validated successfully.';
+
+    // Check if Gemini API key is available
+    const geminiKey = process.env.GEMINI_API_KEY;
+
+    if (geminiKey) {
+      try {
+        console.log('[AI Verification] Running Gemini document validation...');
+        const prompt = `
+          You are an AI document verification bot for a premium vehicle rental platform called RentiGo.
+          Verify the following document details submitted by the user.
+          Current date: ${currentDateStr}
+          Registered user profile name: ${user.name}
+
+          Driving License Details:
+          - License Number: ${drivingLicense?.number || 'Not provided'}
+          - Name on License: ${drivingLicense?.nameOnDoc || 'Not provided'}
+          - Expiry Date: ${drivingLicense?.expiryDate || 'Not provided'}
+
+          Aadhaar Details:
+          - Aadhaar Number: ${aadhaar?.number || 'Not provided'}
+          - Name on Aadhaar: ${aadhaar?.nameOnDoc || 'Not provided'}
+
+          Analyze these details. You must:
+          1. Flag the Driving License as invalid if it is expired compared to the current date (${currentDateStr}).
+          2. Check if the name on the DL and Aadhaar match the registered user name (${user.name}) within reasonable tolerance (e.g., match if initials are used or minor spelling/spacing variations, but reject if completely different name).
+          3. Validate that the license number is valid (e.g. Indian driving licenses have formats like State Code followed by numbers).
+          4. Validate that the Aadhaar number is a valid 12-digit format.
+
+          Respond with a JSON object in this EXACT format:
+          {
+            "dl": {
+              "isValid": true,
+              "reason": "Verified successfully"
+            },
+            "aadhaar": {
+              "isValid": true,
+              "reason": "Verified successfully"
+            }
+          }
+        `;
+
+        const parts = [{ text: prompt }];
+
+        // Extract base64 image data for DL and Aadhaar if provided
+        if (drivingLicense?.imageUrl && drivingLicense.imageUrl.startsWith('data:')) {
+          const match = drivingLicense.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            parts.push({
+              inlineData: {
+                mimeType: match[1],
+                data: match[2]
+              }
+            });
+          }
+        }
+
+        if (aadhaar?.imageUrl && aadhaar.imageUrl.startsWith('data:')) {
+          const match = aadhaar.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            parts.push({
+              inlineData: {
+                mimeType: match[1],
+                data: match[2]
+              }
+            });
+          }
+        }
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { responseMimeType: 'application/json' }
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          const responseText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          const parsed = JSON.parse(responseText.trim());
+
+          if (parsed.dl) {
+            dlStatus = parsed.dl.isValid ? 'verified' : 'rejected';
+            dlMsg = parsed.dl.reason;
+          }
+          if (parsed.aadhaar) {
+            aadhaarStatus = parsed.aadhaar.isValid ? 'verified' : 'rejected';
+            aadhaarMsg = parsed.aadhaar.reason;
+          }
+        } else {
+          console.warn('[AI Verification] Gemini API responded with error status:', response.status);
+          throw new Error('Gemini API request failed');
+        }
+      } catch (err) {
+        console.error('[AI Verification] Gemini verification failed, falling back to rule-based verification:', err);
+        runRuleBasedValidation();
+      }
+    } else {
+      runRuleBasedValidation();
+    }
+
+    function runRuleBasedValidation() {
+      // 1. Driving License Verification
+      if (drivingLicense) {
+        if (!drivingLicense.number || drivingLicense.number.trim().length < 5) {
+          dlStatus = 'rejected';
+          dlMsg = 'Invalid Driving License number format.';
+        } else if (drivingLicense.expiryDate) {
+          const expiryDate = new Date(drivingLicense.expiryDate);
+          const today = new Date();
+          // Reset hours for comparison
+          today.setHours(0, 0, 0, 0);
+          if (expiryDate < today) {
+            dlStatus = 'rejected';
+            dlMsg = `Driving License expired on ${drivingLicense.expiryDate.split('T')[0]}.`;
+          }
+        }
+
+        // Compare Name
+        if (drivingLicense.nameOnDoc && dlStatus !== 'rejected') {
+          const userWords = user.name.toLowerCase().split(/\s+/);
+          const docWords = drivingLicense.nameOnDoc.toLowerCase().split(/\s+/);
+          const hasMatch = userWords.some(w => docWords.includes(w)) || docWords.some(w => userWords.includes(w));
+          if (!hasMatch) {
+            dlStatus = 'rejected';
+            dlMsg = `Document name "${drivingLicense.nameOnDoc}" does not match profile name "${user.name}".`;
+          }
+        }
+      } else {
+        dlStatus = 'unverified';
+        dlMsg = 'Driving License not provided.';
+      }
+
+      // 2. Aadhaar Verification
+      if (aadhaar) {
+        // Aadhaar number formatting (12 digits, strip spaces)
+        const rawAadhaar = aadhaar.number?.replace(/\s+/g, '') || '';
+        if (!/^\d{12}$/.test(rawAadhaar)) {
+          aadhaarStatus = 'rejected';
+          aadhaarMsg = 'Aadhaar must be a 12-digit number.';
+        }
+
+        // Compare Name
+        if (aadhaar.nameOnDoc && aadhaarStatus !== 'rejected') {
+          const userWords = user.name.toLowerCase().split(/\s+/);
+          const docWords = aadhaar.nameOnDoc.toLowerCase().split(/\s+/);
+          const hasMatch = userWords.some(w => docWords.includes(w)) || docWords.some(w => userWords.includes(w));
+          if (!hasMatch) {
+            aadhaarStatus = 'rejected';
+            aadhaarMsg = `Document name "${aadhaar.nameOnDoc}" does not match profile name "${user.name}".`;
+          }
+        }
+      } else {
+        aadhaarStatus = 'unverified';
+        aadhaarMsg = 'Aadhaar document not provided.';
+      }
+    }
+
+    // Set overall verificationStatus
+    let overallStatus = 'unverified';
+    if (dlStatus === 'verified' && aadhaarStatus === 'verified') {
+      overallStatus = 'verified';
+    } else if (dlStatus === 'rejected' || aadhaarStatus === 'rejected') {
+      overallStatus = 'rejected';
+    } else if (dlStatus === 'pending' || aadhaarStatus === 'pending') {
+      overallStatus = 'pending';
+    }
+
+    // Update user profile fields
+    user.verificationStatus = overallStatus;
+    user.verificationDetails = {
+      drivingLicense: {
+        number: drivingLicense?.number,
+        nameOnDoc: drivingLicense?.nameOnDoc,
+        expiryDate: drivingLicense?.expiryDate,
+        imageUrl: drivingLicense?.imageUrl,
+        status: dlStatus,
+        validationMessage: dlMsg
+      },
+      aadhaar: {
+        number: aadhaar?.number,
+        nameOnDoc: aadhaar?.nameOnDoc,
+        imageUrl: aadhaar?.imageUrl,
+        status: aadhaarStatus,
+        validationMessage: aadhaarMsg
+      }
+    };
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: overallStatus === 'verified' ? 'Identity verified successfully!' : 'Document validation complete.',
+      user
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
