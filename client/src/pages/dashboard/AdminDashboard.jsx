@@ -68,6 +68,24 @@ export default function AdminDashboard() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userFilter, setUserFilter] = useState('all');
   const [userSearch, setUserSearch] = useState('');
+  const [selectedVerifyUser, setSelectedVerifyUser] = useState(null);
+  const [verifyRemarks, setVerifyRemarks] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+
+  const handleManualVerify = async (userId, status) => {
+    setVerifyLoading(true);
+    try {
+      await adminAPI.verifyUserAdmin(userId, { status, remarks: verifyRemarks });
+      toast.success(`Verification ${status === 'verified' ? 'approved' : 'rejected'} successfully!`);
+      setSelectedVerifyUser(null);
+      setVerifyRemarks('');
+      fetchUsers(); // reload list
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Action failed');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
 
   // Vehicles management state
   const [vehicles, setVehicles] = useState([]);
@@ -338,6 +356,7 @@ export default function AdminDashboard() {
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Contact Info</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Joined</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Verification</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                 </tr>
@@ -379,6 +398,17 @@ export default function AdminDashboard() {
                       <div className="text-sm text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {u.verificationStatus === 'verified' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-green-500/10 text-green-400 border border-green-500/20">🛡️ Verified</span>
+                      ) : u.verificationStatus === 'pending' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 animate-pulse">⌛ Pending</span>
+                      ) : u.verificationStatus === 'rejected' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/10 text-red-400 border border-red-500/20">⚠️ Rejected</span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-white/5 text-slate-500 border border-white/5">Unverified</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                         u.isActive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
                       }`}>
@@ -386,19 +416,29 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => handleToggleUser(u._id)}
-                        disabled={u.role === 'admin'}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                          u.role === 'admin'
-                            ? 'bg-transparent text-slate-600 border border-slate-800 cursor-not-allowed'
-                            : u.isActive
-                              ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
-                              : 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20'
-                        }`}
-                      >
-                        {u.isActive ? 'Suspend' : 'Activate'}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {u.role === 'customer' && u.verificationStatus !== 'unverified' && (
+                          <button
+                            onClick={() => setSelectedVerifyUser(u)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/20 transition-all"
+                          >
+                            Audit Docs
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleToggleUser(u._id)}
+                          disabled={u.role === 'admin'}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            u.role === 'admin'
+                              ? 'bg-transparent text-slate-600 border border-slate-800 cursor-not-allowed'
+                              : u.isActive
+                                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
+                                : 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20'
+                          }`}
+                        >
+                          {u.isActive ? 'Suspend' : 'Activate'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1078,6 +1118,129 @@ export default function AdminDashboard() {
           {activeTab === 'settings' && renderSettings()}
         </main>
       </div>
+
+      {/* User Verification Modal */}
+      {selectedVerifyUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
+          <div className="glass card-glow rounded-2xl p-6 border border-white/10 w-full max-w-4xl my-8 text-left">
+            <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <ShieldCheck className="text-orange-500" size={20} />
+                  Verify Identity Documents for {selectedVerifyUser.name}
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">Audit driving license and Aadhaar details below</p>
+              </div>
+              <button onClick={() => { setSelectedVerifyUser(null); setVerifyRemarks(''); }} className="text-slate-400 hover:text-white text-sm">✕ Close</button>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              {/* Driving License Audit */}
+              <div className="space-y-4 bg-white/[0.01] p-4 rounded-2xl border border-white/5">
+                <h3 className="text-white font-bold text-sm border-b border-white/5 pb-2">🚗 Driving License</h3>
+                <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-dark-950 flex items-center justify-center">
+                  {selectedVerifyUser.verificationDetails?.drivingLicense?.imageUrl ? (
+                    <img 
+                      src={selectedVerifyUser.verificationDetails.drivingLicense.imageUrl} 
+                      alt="DL Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <span className="text-xs text-slate-500 italic">No image uploaded</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">LICENSE NUMBER</span>
+                    <span className="text-white font-bold">{selectedVerifyUser.verificationDetails?.drivingLicense?.number || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">NAME ON DOC</span>
+                    <span className="text-white font-bold">{selectedVerifyUser.verificationDetails?.drivingLicense?.nameOnDoc || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">EXPIRY DATE</span>
+                    <span className="text-white font-bold">
+                      {selectedVerifyUser.verificationDetails?.drivingLicense?.expiryDate ? 
+                        new Date(selectedVerifyUser.verificationDetails.drivingLicense.expiryDate).toLocaleDateString() 
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">VALIDATION STATUS</span>
+                    <span className={`font-bold capitalize ${
+                      selectedVerifyUser.verificationDetails?.drivingLicense?.status === 'verified' ? 'text-green-400' : 'text-red-400'
+                    }`}>{selectedVerifyUser.verificationDetails?.drivingLicense?.status || 'Pending'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Aadhaar Audit */}
+              <div className="space-y-4 bg-white/[0.01] p-4 rounded-2xl border border-white/5">
+                <h3 className="text-white font-bold text-sm border-b border-white/5 pb-2">💳 Aadhaar Card</h3>
+                <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-dark-950 flex items-center justify-center">
+                  {selectedVerifyUser.verificationDetails?.aadhaar?.imageUrl ? (
+                    <img 
+                      src={selectedVerifyUser.verificationDetails.aadhaar.imageUrl} 
+                      alt="Aadhaar Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <span className="text-xs text-slate-500 italic">No image uploaded</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">AADHAAR NUMBER</span>
+                    <span className="text-white font-bold">{selectedVerifyUser.verificationDetails?.aadhaar?.number || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">NAME ON DOC</span>
+                    <span className="text-white font-bold">{selectedVerifyUser.verificationDetails?.aadhaar?.nameOnDoc || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">VALIDATION STATUS</span>
+                    <span className={`font-bold capitalize ${
+                      selectedVerifyUser.verificationDetails?.aadhaar?.status === 'verified' ? 'text-green-400' : 'text-red-400'
+                    }`}>{selectedVerifyUser.verificationDetails?.aadhaar?.status || 'Pending'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 border-t border-white/5 pt-4">
+              <div>
+                <label className="text-xs text-slate-450 uppercase font-bold tracking-wider mb-2 block">Audit Remarks / Feedback</label>
+                <textarea
+                  placeholder="e.g. Approved or 'Driving License image is blurry, please re-upload'..."
+                  className="input-field h-20 resize-none text-xs"
+                  value={verifyRemarks}
+                  onChange={e => setVerifyRemarks(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  disabled={verifyLoading}
+                  onClick={() => handleManualVerify(selectedVerifyUser._id, 'rejected')}
+                  className="px-5 py-2.5 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold transition-all"
+                >
+                  Reject Verification
+                </button>
+                <button
+                  type="button"
+                  disabled={verifyLoading}
+                  onClick={() => handleManualVerify(selectedVerifyUser._id, 'verified')}
+                  className="btn-primary px-5 py-2.5 text-xs font-bold"
+                >
+                  Approve & Verify
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
