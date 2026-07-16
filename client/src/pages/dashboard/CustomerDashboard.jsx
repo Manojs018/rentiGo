@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home, Leaf, Trophy, Award, Trees, Sparkles, Gift, ArrowRight, MessageSquare } from 'lucide-react';
+import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home, Leaf, Trophy, Award, Trees, Sparkles, Gift, ArrowRight, MessageSquare, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { bookingAPI, authAPI, notificationAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { AnimatePresence } from 'framer-motion';
 import HandoverChatCoordinator from '../../components/ui/HandoverChatCoordinator';
+import DocumentOCRVerifier from '../../components/ui/DocumentOCRVerifier';
 
 const statusColors = {
   pending: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
@@ -155,6 +156,7 @@ const navItems = [
   { id: 'rewards', label: 'Eco Rewards', icon: Leaf },
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'profile', label: 'Profile', icon: User },
+  { id: 'verification', label: 'Identity Verification', icon: ShieldCheck },
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
@@ -657,6 +659,108 @@ export default function CustomerDashboard() {
                   ))}
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Identity Verification Tab */}
+          {activeTab === 'verification' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07] bg-gradient-to-br from-dark-800 to-orange-500/5 text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                      <ShieldCheck size={22} className="text-orange-500" />
+                      RentiGo Identity Trust Guard
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                      To ensure absolute safety for vehicle owners and maintain our premium community standards, we require a one-time driving license and Aadhaar verification.
+                    </p>
+                  </div>
+                  <div>
+                    {user?.verificationStatus === 'verified' ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 px-3.5 py-1.5 rounded-xl border border-green-500/20 font-bold uppercase">
+                        🛡️ Verified Profile
+                      </span>
+                    ) : user?.verificationStatus === 'pending' ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-yellow-400 bg-yellow-500/10 px-3.5 py-1.5 rounded-xl border border-yellow-500/20 font-bold uppercase animate-pulse">
+                        ⌛ Pending Verification
+                      </span>
+                    ) : user?.verificationStatus === 'rejected' ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 px-3.5 py-1.5 rounded-xl border border-red-500/20 font-bold uppercase">
+                        ⚠️ Verification Rejected
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 bg-white/5 px-3.5 py-1.5 rounded-xl border border-white/5 font-semibold uppercase">
+                        Unverified
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {user?.verificationStatus === 'verified' ? (
+                <div className="grid md:grid-cols-2 gap-6 text-left">
+                  {/* Verified DL Card */}
+                  <div className="glass card-glow rounded-2xl p-6 border-white/[0.07] space-y-4">
+                    <h3 className="text-white font-bold text-base flex items-center gap-2 border-b border-white/[0.05] pb-3">
+                      <CheckCircle className="text-green-400" size={18} />
+                      Verified Driving License
+                    </h3>
+                    <div className="space-y-3 pt-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">License Number:</span>
+                        <span className="text-white font-mono font-bold">
+                          {user.verificationDetails?.drivingLicense?.number ? 
+                            `DL-*****${user.verificationDetails.drivingLicense.number.substring(user.verificationDetails.drivingLicense.number.length - 4)}` 
+                            : 'Verified'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Name on Document:</span>
+                        <span className="text-white font-bold">{user.verificationDetails?.drivingLicense?.nameOnDoc || user.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Expiry Date:</span>
+                        <span className="text-white font-bold">
+                          {user.verificationDetails?.drivingLicense?.expiryDate ? 
+                            new Date(user.verificationDetails.drivingLicense.expiryDate).toLocaleDateString() 
+                            : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Verified Aadhaar Card */}
+                  <div className="glass card-glow rounded-2xl p-6 border-white/[0.07] space-y-4">
+                    <h3 className="text-white font-bold text-base flex items-center gap-2 border-b border-white/[0.05] pb-3">
+                      <CheckCircle className="text-green-400" size={18} />
+                      Verified Aadhaar Card
+                    </h3>
+                    <div className="space-y-3 pt-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Aadhaar Number:</span>
+                        <span className="text-white font-mono font-bold">
+                          {user.verificationDetails?.aadhaar?.number ? 
+                            `XXXX-XXXX-${user.verificationDetails.aadhaar.number.substring(user.verificationDetails.aadhaar.number.length - 4)}` 
+                            : 'Verified'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Name on Document:</span>
+                        <span className="text-white font-bold">{user.verificationDetails?.aadhaar?.nameOnDoc || user.name}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="glass card-glow rounded-2xl p-6 border border-white/[0.07]">
+                  <DocumentOCRVerifier 
+                    onVerificationSuccess={() => {
+                      toast.success('Identity successfully verified!');
+                    }}
+                  />
+                </div>
+              )}
             </motion.div>
           )}
 
