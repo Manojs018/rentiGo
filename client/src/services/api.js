@@ -39,6 +39,7 @@ export const authAPI = {
   resetPassword: (token, password) => api.put(`/auth/reset-password/${token}`, { password }),
   getFavorites: () => api.get('/auth/favorites'),
   toggleFavorite: (vehicleId) => api.post(`/auth/favorites/${vehicleId}`),
+  verifyDocuments: (data) => api.put('/auth/verify-documents', data),
 };
 
 // ── Vehicles ──────────────────────────────────
@@ -66,6 +67,7 @@ export const adminAPI = {
   getAnalytics: () => api.get('/admin/analytics'),
   getUsers: (params) => api.get('/admin/users', { params }),
   toggleUser: (id) => api.put(`/admin/users/${id}/toggle`),
+  verifyUserAdmin: (id, data) => api.put(`/admin/users/${id}/verify`, data),
   getVehicles: (params) => api.get('/admin/vehicles', { params }),
   approveVehicle: (id, data) => api.put(`/admin/vehicles/${id}/status`, data),
   getBookings: (params) => api.get('/admin/bookings', { params }),
