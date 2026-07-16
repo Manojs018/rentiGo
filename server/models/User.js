@@ -77,6 +77,28 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  verificationStatus: {
+    type: String,
+    enum: ['unverified', 'pending', 'verified', 'rejected'],
+    default: 'unverified'
+  },
+  verificationDetails: {
+    drivingLicense: {
+      number: String,
+      nameOnDoc: String,
+      expiryDate: Date,
+      imageUrl: String,
+      status: { type: String, enum: ['unverified', 'pending', 'verified', 'rejected'], default: 'unverified' },
+      validationMessage: String,
+    },
+    aadhaar: {
+      number: String,
+      nameOnDoc: String,
+      imageUrl: String,
+      status: { type: String, enum: ['unverified', 'pending', 'verified', 'rejected'], default: 'unverified' },
+      validationMessage: String,
+    }
+  },
 }, { timestamps: true });
 
 // Hash password before saving
