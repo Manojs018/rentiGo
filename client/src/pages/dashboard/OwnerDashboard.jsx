@@ -1078,6 +1078,23 @@ export default function OwnerDashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 flex-wrap mb-2">
                         <h4 className="text-white font-bold">{b.customer?.name}</h4>
+                        {b.customer?.verificationStatus === 'verified' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                            🛡️ Verified
+                          </span>
+                        ) : b.customer?.verificationStatus === 'pending' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full border border-yellow-500/20">
+                            ⌛ Pending
+                          </span>
+                        ) : b.customer?.verificationStatus === 'rejected' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                            ⚠️ Rejected
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                            Unverified
+                          </span>
+                        )}
                         <span className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize ${statusColors[b.status]}`}>{b.status}</span>
                       </div>
                       <p className="text-slate-400 text-sm">{b.vehicle?.brand} {b.vehicle?.model} • {b.customer?.phone}</p>
