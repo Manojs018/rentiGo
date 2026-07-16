@@ -161,3 +161,44 @@ exports.getAdminBookings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Approve/reject user document verification
+// @route   PUT /api/admin/users/:id/verify
+// @access  Admin
+exports.verifyUser = async (req, res) => {
+  try {
+    const { status, remarks } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    user.verificationStatus = status;
+    if (user.verificationDetails) {
+      if (user.verificationDetails.drivingLicense) {
+        user.verificationDetails.drivingLicense.status = status;
+        if (remarks) user.verificationDetails.drivingLicense.validationMessage = remarks;
+      }
+      if (user.verificationDetails.aadhaar) {
+        user.verificationDetails.aadhaar.status = status;
+        if (remarks) user.verificationDetails.aadhaar.validationMessage = remarks;
+      }
+    }
+    await user.save();
+
+    // Create verification notification
+    try {
+      await Notification.create({
+        user: user._id,
+        title: `Verification ${status === 'verified' ? 'Approved' : 'Rejected'}`,
+        message: `Your identity documents have been ${status} by the administrator.${remarks ? ' Remarks: ' + remarks : ''}`,
+        type: 'approval',
+        link: '/dashboard'
+      });
+    } catch (err) {
+      console.error('Failed to notify user of verification status update:', err);
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
