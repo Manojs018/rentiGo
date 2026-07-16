@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { bookingAPI, vehicleAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import DocumentOCRVerifier from '../components/ui/DocumentOCRVerifier';
 import {
   Calendar,
   MapPin,
@@ -154,7 +155,7 @@ export default function Booking() {
         city: form.city,
         rentalPlan: form.rentalPlan
       });
-      setStep(4); // Success step
+      setStep(5); // Success step
       toast.success('Booking confirmed! 🎉');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Booking failed');
@@ -215,8 +216,9 @@ export default function Booking() {
               {[
                 { n: 1, label: 'Select Vehicle' },
                 { n: 2, label: 'Ride Details' },
-                { n: 3, label: 'Confirm' },
-                { n: 4, label: 'Finished' },
+                { n: 3, label: 'Verify Identity' },
+                { n: 4, label: 'Confirm' },
+                { n: 5, label: 'Finished' },
               ].map(s => (
                 <div key={s.n} className="flex flex-col items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${step >= s.n ? 'bg-orange-500 border-orange-500 text-white shadow-glow-sm' : 'bg-dark-900 border-white/10 text-slate-500'
@@ -368,11 +370,17 @@ export default function Booking() {
                       </div>
 
                       <button
-                        onClick={() => setStep(3)}
+                        onClick={() => {
+                          if (user?.verificationStatus === 'verified') {
+                            setStep(4);
+                          } else {
+                            setStep(3);
+                          }
+                        }}
                         disabled={!form.pickupDate || !form.returnDate}
                         className="btn-primary w-full py-4 justify-center"
                       >
-                        Proceed to Confirm <ChevronRight size={18} />
+                        {user?.verificationStatus === 'verified' ? 'Proceed to Confirm' : 'Proceed to Verify Identity'} <ChevronRight size={18} />
                       </button>
                     </div>
                   </div>
@@ -443,10 +451,32 @@ export default function Booking() {
                 </motion.div>
               )}
 
-              {/* Step 3: Confirmation */}
+              {/* Step 3: Identity Verification */}
               {step === 3 && (
                 <motion.div
                   key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="max-w-4xl mx-auto"
+                >
+                  <div className="space-y-6">
+                    <button onClick={() => setStep(2)} className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors text-sm font-bold mb-4">
+                      <ArrowLeft size={16} /> Back to Ride Details
+                    </button>
+                    
+                    <DocumentOCRVerifier 
+                      onVerificationSuccess={() => setStep(4)} 
+                      onVerificationFailed={() => {}} 
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 4: Confirmation */}
+              {step === 4 && (
+                <motion.div
+                  key="step4"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -539,17 +569,17 @@ export default function Booking() {
                       </button>
                     </div>
 
-                    <button onClick={() => setStep(2)} className="w-full py-4 text-slate-500 hover:text-white transition-all text-sm font-bold">
+                    <button onClick={() => setStep(user?.verificationStatus === 'verified' ? 2 : 3)} className="w-full py-4 text-slate-500 hover:text-white transition-all text-sm font-bold">
                       Wait, let me change something
                     </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* Step 4: Success */}
-              {step === 4 && (
+              {/* Step 5: Success */}
+              {step === 5 && (
                 <motion.div
-                  key="step4"
+                  key="step5"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="max-w-xl mx-auto text-center"
