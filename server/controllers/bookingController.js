@@ -3,6 +3,7 @@ const Vehicle = require('../models/Vehicle');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { updateUserEcoStats, getDiscountPercentage } = require('../utils/ecoHelper');
+const { sendBookingWhatsAppNotification } = require('../utils/whatsapp');
 
 
 // @desc    Create booking
@@ -93,6 +94,9 @@ exports.createBooking = async (req, res) => {
       console.error('Failed to create booking notifications:', err);
     }
 
+    // Trigger non-blocking WhatsApp notification to the vehicle owner
+    sendBookingWhatsAppNotification(booking._id, 'requested');
+
     res.status(201).json({ success: true, data: booking });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -147,6 +151,15 @@ exports.updateBookingStatus = async (req, res) => {
     if (status === 'confirmed') booking.confirmedAt = Date.now();
     if (status === 'completed') booking.completedAt = Date.now();
     await booking.save();
+
+    // Trigger non-blocking WhatsApp notification on status change
+    if (oldStatus !== status) {
+      if (status === 'confirmed') {
+        sendBookingWhatsAppNotification(booking._id, 'confirmed');
+      } else if (status === 'cancelled') {
+        sendBookingWhatsAppNotification(booking._id, 'cancelled');
+      }
+    }
 
     // Sync eco stats if status transitioned to/from completed
     if (oldStatus === 'completed' || status === 'completed') {
@@ -221,6 +234,9 @@ exports.cancelBooking = async (req, res) => {
     booking.cancelReason = req.body.reason || 'Cancelled by customer';
     booking.cancelledAt = Date.now();
     await booking.save();
+
+    // Trigger non-blocking WhatsApp notification to customer
+    sendBookingWhatsAppNotification(booking._id, 'cancelled');
 
     // Make vehicle available again on customer cancellation
     const vehicle = await Vehicle.findById(booking.vehicle);
