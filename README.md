@@ -1,4 +1,4 @@
-# 🚗 RentiGo – Premium Vehicle Rental Platform
+#  RentiGo – Premium Vehicle Rental Platform
 
 > **Taxi, Bike & Vehicle Rentals in India – Easy Search, Seamless Handover, and Real-time Communication.**
 
