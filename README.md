@@ -6,7 +6,7 @@ RentiGo is a fully featured, production-ready, multi-role vehicle rental platfor
 
 ---
 
-## 🚀 Key Features
+##  Key Features
 
 RentiGo implements a comprehensive multi-role access control (RBAC) system with distinct workflows:
 
