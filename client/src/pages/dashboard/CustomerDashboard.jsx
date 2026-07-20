@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home, Leaf, Trophy, Award, Trees, Sparkles, Gift, ArrowRight, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Car, Calendar, Heart, User, Bell, CreditCard, Clock, CheckCircle, XCircle, LogOut, Home, Leaf, Trophy, Award, Trees, Sparkles, Gift, ArrowRight, MessageSquare, ShieldCheck, AlertTriangle, Edit3 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { bookingAPI, authAPI, notificationAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -173,6 +173,41 @@ export default function CustomerDashboard() {
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
 
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    city: user?.city || '',
+  });
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        phone: user.phone || '',
+        city: user.city || '',
+      });
+    }
+  }, [user]);
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    try {
+      const { data } = await authAPI.updateProfile(profileForm);
+      if (data.user) {
+        updateUser(data.user);
+        toast.success('Profile updated successfully!');
+        setIsEditingProfile(false);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchBookings();
   }, []);
@@ -333,6 +368,36 @@ export default function CustomerDashboard() {
         </div>
 
         <div className="p-6">
+          {/* Missing Phone Number Warning Banner */}
+          {!user?.phone && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="mb-6 glass border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border shadow-glow-sm"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h4 className="text-amber-300 font-bold text-sm">Complete Your Profile</h4>
+                  <p className="text-slate-300 text-xs sm:text-sm mt-0.5">
+                    ⚠️ Please add your phone number to receive instant WhatsApp booking confirmations.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setActiveTab('profile');
+                  setIsEditingProfile(true);
+                }} 
+                className="btn-primary text-xs py-2 px-4 whitespace-nowrap shadow-glow-sm bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+              >
+                + Add Phone Number
+              </button>
+            </motion.div>
+          )}
+
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -636,28 +701,104 @@ export default function CustomerDashboard() {
           {activeTab === 'profile' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-xl">
               <div className="glass card-glow rounded-2xl p-7 border border-white/[0.07]">
-                <div className="flex items-center gap-4 mb-7">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-2xl font-black shadow-glow">
-                    {user?.name?.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold text-lg">{user?.name}</h3>
-                    <p className="text-slate-400 text-sm">{user?.role} account</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {[
-                    { label: 'Full Name', value: user?.name, key: 'name' },
-                    { label: 'Email Address', value: user?.email, key: 'email' },
-                    { label: 'Phone Number', value: user?.phone || 'Not set', key: 'phone' },
-                    { label: 'City', value: user?.city || 'Not set', key: 'city' },
-                  ].map(field => (
-                    <div key={field.key} className="flex items-center justify-between py-3 border-b border-white/[0.04]">
-                      <span className="text-slate-400 text-sm">{field.label}</span>
-                      <span className="text-white text-sm font-medium">{field.value}</span>
+                <div className="flex items-center justify-between gap-4 mb-7">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-2xl font-black shadow-glow overflow-hidden">
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        user?.name?.charAt(0)
+                      )}
                     </div>
-                  ))}
+                    <div>
+                      <h3 className="text-white font-bold text-lg">{user?.name}</h3>
+                      <p className="text-slate-400 text-sm capitalize">{user?.role} account</p>
+                    </div>
+                  </div>
+                  {!isEditingProfile ? (
+                    <button 
+                      onClick={() => setIsEditingProfile(true)} 
+                      className="btn-secondary text-xs px-4 py-2 flex items-center gap-1.5 shrink-0"
+                    >
+                      <Edit3 size={14} /> Edit Profile
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => setIsEditingProfile(false)} 
+                      className="text-slate-400 hover:text-white text-xs px-3 py-1.5"
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </div>
+
+                {!isEditingProfile ? (
+                  <div className="space-y-4">
+                    {[
+                      { label: 'Full Name', value: user?.name, key: 'name' },
+                      { label: 'Email Address', value: user?.email, key: 'email' },
+                      { label: 'Phone Number', value: user?.phone || 'Not set', key: 'phone' },
+                      { label: 'City', value: user?.city || 'Not set', key: 'city' },
+                    ].map(field => (
+                      <div key={field.key} className="flex items-center justify-between py-3 border-b border-white/[0.04]">
+                        <span className="text-slate-400 text-sm">{field.label}</span>
+                        <span className={`text-sm font-medium ${field.value === 'Not set' ? 'text-amber-400 italic' : 'text-white'}`}>
+                          {field.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <form onSubmit={handleSaveProfile} className="space-y-4">
+                    <div>
+                      <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider block mb-1.5">Full Name</label>
+                      <input 
+                        type="text" 
+                        value={profileForm.name} 
+                        onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} 
+                        className="input-field w-full text-sm" 
+                        required 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider block mb-1.5">Phone Number (For WhatsApp Notifications)</label>
+                      <input 
+                        type="tel" 
+                        placeholder="e.g. 9876543210" 
+                        value={profileForm.phone} 
+                        onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} 
+                        className="input-field w-full text-sm" 
+                        required 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider block mb-1.5">City</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Ahmedabad" 
+                        value={profileForm.city} 
+                        onChange={e => setProfileForm({ ...profileForm, city: e.target.value })} 
+                        className="input-field w-full text-sm" 
+                      />
+                    </div>
+                    <div className="pt-3 flex gap-3">
+                      <button 
+                        type="submit" 
+                        disabled={profileSaving} 
+                        className="btn-primary text-xs py-2.5 px-5 flex-1"
+                      >
+                        {profileSaving ? 'Saving...' : 'Save Profile'}
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsEditingProfile(false)} 
+                        className="btn-secondary text-xs py-2.5 px-4"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </motion.div>
           )}
