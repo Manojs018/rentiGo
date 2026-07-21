@@ -4,11 +4,12 @@
   "description": "Root package to run both client and server concurrently",
   "scripts": {
     "install-all": "npm --prefix server install && npm --prefix client install",
+    "build": "npm --prefix client run build",
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^10.0.3"
   }
 }

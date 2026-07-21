@@ -3,41 +3,36 @@ import { io } from 'socket.io-client';
 
 const SocketContext = createContext(null);
 
-export const useSocket = () => useContext(SocketContext);
-
-export const SocketProvider = ({ children }) => {
+export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
-    const socketUrl = apiUrl.replace(/\/api$/, '');
-
-    console.log(`🔌 Connecting to Socket server at ${socketUrl}`);
-    const newSocket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-    });
-
-    setSocket(newSocket);
-
-    newSocket.on('connect', () => {
-      console.log('🔌 Connected to Socket.io server successfully');
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('🔌 Socket connection error:', error.message);
-    });
+    let socketIo = null;
+    try {
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+      socketIo = io(socketUrl, {
+        transports: ['websocket', 'polling'],
+        autoConnect: true,
+      });
+      setSocket(socketIo);
+    } catch (err) {
+      console.warn('Socket connection deferred:', err);
+    }
 
     return () => {
-      newSocket.disconnect();
-      console.log('🔌 Disconnected from Socket.io server');
+      if (socketIo) socketIo.disconnect();
     };
   }, []);
 
   return (
-    <SocketContext.Provider value={socket}>
+    <SocketContext.Provider value={{ socket }}>
       {children}
     </SocketContext.Provider>
   );
+}
+
+export const useSocket = () => {
+  return useContext(SocketContext);
 };
+
+export default SocketContext;

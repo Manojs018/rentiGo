@@ -18,14 +18,28 @@ const messageRoutes = require('./routes/messages');
 
 const app = express();
 
-// Connect Database
-connectDB();
+// Database connection middleware for serverless/cold starts
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('Database connection error in middleware:', err);
+    res.status(500).json({ success: false, message: 'Database connection error' });
+  }
+});
 
 // Security & Parsing Middleware
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 app.use(cors({
-  origin: clientUrl,
+  origin: (origin, callback) => {
+    if (!origin || origin.includes('localhost') || origin.endsWith('.vercel.app') || origin === clientUrl) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -72,7 +86,7 @@ const { Server } = require('socket.io');
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: clientUrl,
+    origin: (origin, callback) => callback(null, true),
     credentials: true,
   }
 });
@@ -97,9 +111,11 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 5005;
-server.listen(PORT, () => {
-  console.log(`🚀 RentiGo Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-});
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5005;
+  server.listen(PORT, () => {
+    console.log(`🚀 RentiGo Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  });
+}
 
-module.exports = server;
+module.exports = app;

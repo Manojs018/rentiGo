@@ -7,7 +7,6 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { bookingAPI, vehicleAPI } from '../services/api';
 import toast from 'react-hot-toast';
-import DocumentOCRVerifier from '../components/ui/DocumentOCRVerifier';
 import {
   Calendar,
   MapPin,

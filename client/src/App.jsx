@@ -11,7 +11,6 @@ import ParticlesBackground from './components/ui/ParticlesBackground';
 // ... (rest of imports unchanged)
 import Home from './pages/Home';
 import Rentals from './pages/Rentals';
-import Recommend from './pages/Recommend';
 import Cities from './pages/Cities';
 import Pricing from './pages/Pricing';
 import About from './pages/About';
@@ -20,12 +19,9 @@ import Booking from './pages/Booking';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import VerifyEmail from './pages/auth/VerifyEmail';
 import CustomerDashboard from './pages/dashboard/CustomerDashboard';
 import OwnerDashboard from './pages/dashboard/OwnerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
-import EarningsSimulator from './pages/EarningsSimulator';
 
 // Protected route wrapper
 function ProtectedRoute({ children, roles }) {
@@ -40,18 +36,18 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/rentals" element={<Rentals />} />
-      <Route path="/recommend" element={<Recommend />} />
+      <Route path="/recommend" element={<Navigate to="/rentals" replace />} />
       <Route path="/cities" element={<Cities />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/booking" element={<Booking />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/earnings-simulator" element={<EarningsSimulator />} />
+      <Route path="/earnings-simulator" element={<Navigate to="/pricing" replace />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password/:token" element={<ResetPassword />} />
-      <Route path="/verify-email/:token" element={<VerifyEmail />} />
+      <Route path="/reset-password/:token" element={<ForgotPassword />} />
+      <Route path="/verify-email/:token" element={<Login />} />
       <Route path="/dashboard" element={
         <ProtectedRoute roles={['customer']}>
           <CustomerDashboard />

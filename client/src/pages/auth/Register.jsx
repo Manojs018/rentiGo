@@ -33,8 +33,11 @@ export default function Register() {
     setLoading(true);
     try {
       const res = await register(form);
-      toast.success(res?.message || 'Registration successful! Verification email sent. Please check your inbox.', { duration: 6000 });
-      navigate('/login');
+      toast.success(res?.message || 'Registration successful!', { duration: 4000 });
+      const targetRole = res?.user?.role || form.role;
+      if (targetRole === 'owner') navigate('/owner');
+      else if (targetRole === 'admin') navigate('/admin');
+      else navigate('/dashboard');
     } catch (err) {
       toast.error(err.message);
     } finally {

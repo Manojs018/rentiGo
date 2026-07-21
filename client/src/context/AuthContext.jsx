@@ -99,7 +99,11 @@ export function AuthProvider({ children }) {
     dispatch({ type: 'LOGIN_START' });
     try {
       const { data } = await authAPI.register(userData);
-      dispatch({ type: 'LOGOUT' });
+      if (data.token && data.user) {
+        dispatch({ type: 'LOGIN_SUCCESS', payload: data });
+      } else {
+        dispatch({ type: 'LOGOUT' });
+      }
       return data;
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed';

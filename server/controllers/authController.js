@@ -29,50 +29,23 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
-    const user = await User.create({ name, email, password, phone, role: role || 'customer', city, isVerified: false });
+    const user = await User.create({ name, email, password, phone, role: role || 'customer', city, isVerified: true });
     
-    // Generate verification token
-    const verificationToken = user.getVerificationToken();
-    await user.save({ validateBeforeSave: false });
-
-    // Create verification URL
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    const verifyUrl = `${clientUrl}/verify-email/${verificationToken}`;
-
-    const message = `Welcome to RentiGo, ${user.name}!\n\nPlease verify your email by clicking the link below:\n\n${verifyUrl}\n\nThis link is valid for 24 hours.`;
-    const htmlMessage = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #0b0b0f; color: #f8fafc;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="color: #f97316; margin: 0; font-size: 24px; font-weight: bold;">RentiGo</h2>
-        </div>
-        <p style="font-size: 16px; line-height: 1.5; color: #cbd5e1;">Hello ${user.name},</p>
-        <p style="font-size: 16px; line-height: 1.5; color: #cbd5e1;">Welcome to RentiGo! To finalize your registration and activate your account, please verify your email address by clicking the button below:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verifyUrl}" style="background-color: #f97316; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);">Verify Email Address</a>
-        </div>
-        <p style="font-size: 14px; color: #94a3b8; line-height: 1.5;">This link is valid for 24 hours. If you did not sign up for a RentiGo account, you can safely ignore this email.</p>
-        <hr style="border: 0; border-top: 1px solid #334155; margin: 25px 0;" />
-        <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">Need help? Contact support at support@rentigo.in</p>
-      </div>
-    `;
-
-    try {
-      await sendEmail({
+    const token = generateToken(user._id);
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
         email: user.email,
-        subject: 'Verify your RentiGo Account',
-        message,
-        html: htmlMessage,
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Registration successful! Verification email sent. Please check your inbox.',
-      });
-    } catch (err) {
-      console.error('Email verification sending failed:', err);
-      await User.findByIdAndDelete(user._id);
-      return res.status(500).json({ success: false, message: 'Verification email could not be sent. Please try registering again.' });
-    }
+        role: user.role,
+        phone: user.phone,
+        city: user.city,
+        isVerified: true,
+      },
+      message: 'Registration successful!',
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -106,7 +79,8 @@ exports.login = async (req, res) => {
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ success: false, message: 'Please verify your email address before logging in' });
+      user.isVerified = true;
+      await user.save({ validateBeforeSave: false });
     }
 
     const token = generateToken(user._id);
