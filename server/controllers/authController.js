@@ -29,7 +29,21 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
-    const user = await User.create({ name, email, password, phone, role: role || 'customer', city, isVerified: false });
+    const isDevMode = process.env.NODE_ENV === 'development' || 
+                      !process.env.EMAIL_USER || 
+                      process.env.EMAIL_USER === 'your_email@gmail.com' ||
+                      !process.env.EMAIL_PASS || 
+                      process.env.EMAIL_PASS === 'your_app_password';
+
+    const user = await User.create({ 
+      name, 
+      email, 
+      password, 
+      phone, 
+      role: role || 'customer', 
+      city, 
+      isVerified: isDevMode ? true : false 
+    });
     
     // Generate verification token
     const verificationToken = user.getVerificationToken();
@@ -66,10 +80,20 @@ exports.register = async (req, res) => {
 
       res.status(201).json({
         success: true,
-        message: 'Registration successful! Verification email sent. Please check your inbox.',
+        message: isDevMode 
+          ? 'Registration successful! Account auto-verified for testing.'
+          : 'Registration successful! Verification email sent. Please check your inbox.',
       });
     } catch (err) {
       console.error('Email verification sending failed:', err);
+      if (isDevMode) {
+        user.isVerified = true;
+        await user.save({ validateBeforeSave: false });
+        return res.status(201).json({
+          success: true,
+          message: 'Registration successful! Account auto-verified for testing.',
+        });
+      }
       await User.findByIdAndDelete(user._id);
       return res.status(500).json({ success: false, message: 'Verification email could not be sent. Please try registering again.' });
     }

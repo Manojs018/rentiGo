@@ -13,7 +13,7 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
 
 let client;
-if (accountSid && authToken) {
+if (accountSid && authToken && accountSid.startsWith('AC')) {
   client = twilio(accountSid, authToken);
 }
 

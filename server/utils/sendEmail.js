@@ -1,9 +1,10 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
-  // Check if SMTP environment variables are set.
-  // If not, log email to console as fallback for development.
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  const isPlaceholderUser = !process.env.EMAIL_USER || process.env.EMAIL_USER === 'your_email@gmail.com';
+  const isPlaceholderPass = !process.env.EMAIL_PASS || process.env.EMAIL_PASS === 'your_app_password';
+
+  if (isPlaceholderUser || isPlaceholderPass) {
     console.log('\n==================================================');
     console.log('📬  [DEVELOPMENT EMAIL FALLBACK]');
     console.log(`To:      ${options.email}`);
