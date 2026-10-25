@@ -85,7 +85,7 @@ veRent/
 ├── package.json                # Root package for orchestration
 └── websiteInfo.txt             # Original product specification and brand voice documentation
 ```
-[![Architecture diagram of manojs018/rentigo](https://gitdiagram.com/manojs018/rentigo/diagram.png)](https://gitdiagram.com/manojs018/rentigo?utm_source=readme&utm_medium=picture)
+
 ---
 
 ## ⚙️ Environment Configuration
