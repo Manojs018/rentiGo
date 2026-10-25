@@ -101,7 +101,7 @@ VITE_API_URL=http://localhost:5005/api
 ```
 
 ---
-
+[![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/manojs018/rentigo?utm_source=readme&utm_medium=badge)
 ## 🏁 Getting Started
 
 Follow these steps to set up and run RentiGo locally:
